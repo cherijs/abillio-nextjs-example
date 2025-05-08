@@ -1,0 +1,10 @@
+{
+  "getStarted": "Get started by renaming",
+  "envExample": ".env.example",
+  "envLocal": ".env.local",
+  "setVars": "and setting the correct values for the variables.",
+  "save": "Save and see your changes instantly.",
+  "deploy": "Deploy now",
+  "readDocs": "Read our docs",
+  "abillioServices": "Abillio Services"
+}

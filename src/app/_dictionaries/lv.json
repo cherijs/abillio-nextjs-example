@@ -1,0 +1,10 @@
+{
+  "getStarted": "Sāc, pārsaucot",
+  "envExample": ".env.example",
+  "envLocal": ".env.local",
+  "setVars": "un iestati pareizās vērtības mainīgajiem.",
+  "save": "Saglabā un uzreiz redzi izmaiņas.",
+  "deploy": "Izvietot tagad",
+  "readDocs": "Lasīt dokumentāciju",
+  "abillioServices": "Abillio pakalpojumi"
+}
