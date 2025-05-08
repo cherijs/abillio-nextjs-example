@@ -1,41 +1,45 @@
-"use client"
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect } from "react";
+import {useEffect} from "react";
 // import { abillioApiRequest } from "../../lib/abillio";
 import {getDictionary} from "../_dictionaries";
-import { useState } from "react";
+import {useState} from "react";
 
 export default function HomePage({lang} : {
   lang: "en" | "lv"
 }) {
   const dict = getDictionary(lang);
-  
-//   version 1 - fetch from our server side that connects to abillio api
-//   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`) || "http://localhost:3000";
-//   const res = await fetch(`${baseUrl}/api/abillio/services?lang=${lang}`, {cache: "no-store"});
-//   const services = await res.json();
 
-//   version 2 - fetch from abillio api directly only on server side, remove "use client"
-//   const services = await abillioApiRequest('services', {}, 'GET', { lang });
-    
-//   version 3 - fetch from abillio api directly with client side fetch currentl solution
+  //   version 1 - fetch from our server side that connects to abillio api
+  //   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`) || "http://localhost:3000";
+  //   const res = await fetch(`${baseUrl}/api/abillio/services?lang=${lang}`, {cache: "no-store"});
+  //   const services = await res.json();
 
-  const [services, setServices] = useState<any>(null);
+  //   version 2 - fetch from abillio api directly only on server side, remove "use client"
+  //   const services = await abillioApiRequest('services', {}, 'GET', { lang });
+
+  //   version 3 - fetch from abillio api directly with client side fetch currentl solution
+
+  const [services, setServices] = useState<any[]>([]);
+  const [pagination, setPagination] = useState<any>(null);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+
+  const getServices = async (page : number) => {
+    const res = await fetch(`/api/abillio/services?lang=${lang}&p=${page}`);
+    const data = await res.json();
+    setServices(data.result);
+    setPagination(data.pagination);
+    setLoading(false);
+    return data;
+  };
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/abillio/services?lang=${lang}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setServices(data);
-        setLoading(false);
-      });
-  }, [lang]);
-
-
+    getServices(page);
+  }, [lang, page]);
 
   const otherLang = lang === "en"
     ? "lv"
@@ -70,6 +74,32 @@ export default function HomePage({lang} : {
 
       <div className="w-full max-w-2xl mt-8">
         <h2 className="text-lg font-bold mb-2 ">{dict.abillioServices}</h2>
+        {pagination && (
+          <div className="flex gap-2">
+            
+            <span>
+              Page {pagination ? pagination.page : "-"} of {pagination ? pagination.num_pages : "-"}
+            </span>
+             <button
+                          className="underline"
+              disabled={!pagination?.previous_page}
+              onClick={() => setPage(pagination.previous_page)}
+            >
+              Previous
+            </button>
+            <button
+              className="underline"
+              disabled={!pagination?.next_page}
+              onClick={() => setPage(pagination.next_page)}
+            >
+              Next
+            </button>
+                      
+          </div>
+        )}
+        <div className="mt-2 text-xs text-gray-500">
+          Showing {services.length} of {pagination ? pagination.count : "-"} results
+        </div>
         <pre className="border border-white/5 p-4 rounded overflow-x-auto text-xs font-[family-name:var(--font-geist-mono)]">
             {loading ? "Loading..." : JSON.stringify(services, null, 2)}
           </pre>
