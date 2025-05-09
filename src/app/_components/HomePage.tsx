@@ -38,7 +38,7 @@ export default function HomePage({ lang }: { lang: 'en' | 'lv' }) {
     async (page: number) => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/abillio/services?lang=${lang}&p=${page}`);
+        const res = await fetch(`/api/abillio/services?lang=${lang}&country=LV&p=${page}`);
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
         }

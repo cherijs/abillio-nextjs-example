@@ -28,7 +28,10 @@ type AbillioServiceResponse = {
 
 export default async function HomePageDirectAbillio({ lang }: { lang: 'en' | 'lv' }) {
   const dict = getDictionary(lang);
-  const data = await abillioApiRequest<AbillioServiceResponse>('services', {}, 'GET', { lang });
+  const data = await abillioApiRequest<AbillioServiceResponse>('services', {}, 'GET', {
+    lang,
+    country: 'LV',
+  });
   const services = data.result;
   const pagination = data.pagination ?? null;
 
