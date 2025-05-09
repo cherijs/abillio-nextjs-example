@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type JsonViewerProps = {
-  data: any;
+  data: unknown;
   rootName?: string;
   defaultExpanded?: boolean;
   className?: string;
@@ -29,7 +29,7 @@ export function JsonViewer({
 
 type JsonNodeProps = {
   name: string;
-  data: any;
+  data: unknown;
   isRoot?: boolean;
   defaultExpanded?: boolean;
   level?: number;
@@ -63,7 +63,9 @@ function JsonNode({
     !(data instanceof Date) &&
     (dataType === 'object' || dataType === 'array');
   const itemCount =
-    isExpandable && data !== null && data !== undefined ? Object.keys(data).length : 0;
+    isExpandable && data !== null && data !== undefined && typeof data === 'object'
+      ? Object.keys(data as object).length
+      : 0;
 
   return (
     <div className={cn('pl-4 group/object', level > 0 && 'border-l border-border')}>
@@ -124,15 +126,17 @@ function JsonNode({
 
       {isExpandable && isExpanded && data !== null && data !== undefined && (
         <div className="pl-4">
-          {Object.keys(data).map((key) => (
-            <JsonNode
-              key={key}
-              name={dataType === 'array' ? `${key}` : key}
-              data={data[key]}
-              level={level + 1}
-              defaultExpanded={level < 1}
-            />
-          ))}
+          {typeof data === 'object' &&
+            data !== null &&
+            Object.keys(data as object).map((key) => (
+              <JsonNode
+                key={key}
+                name={dataType === 'array' ? `${key}` : key}
+                data={(data as Record<string, unknown>)[key]}
+                level={level + 1}
+                defaultExpanded={level < 1}
+              />
+            ))}
           <div className="text-muted-foreground pl-4 py-1">{dataType === 'array' ? ']' : '}'}</div>
         </div>
       )}
@@ -141,7 +145,7 @@ function JsonNode({
 }
 
 // Update the JsonValue function to make the entire row clickable with an expand icon
-function JsonValue({ data }: { data: any }) {
+function JsonValue({ data }: { data: unknown }) {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const dataType = typeof data;
   const TEXT_LIMIT = 80; // Character limit before truncation
@@ -160,7 +164,7 @@ function JsonValue({ data }: { data: any }) {
 
   switch (dataType) {
     case 'string':
-      if (data.length > TEXT_LIMIT) {
+      if (typeof data === 'string' && data.length > TEXT_LIMIT) {
         return (
           <div
             className="text-emerald-500 flex-1 flex items-center relative group cursor-pointer"
@@ -176,7 +180,7 @@ function JsonValue({ data }: { data: any }) {
               <Tooltip delayDuration={300}>
                 <TooltipTrigger asChild>
                   <span className="inline-block max-w-full">
-                    {data.substring(0, TEXT_LIMIT)}...
+                    {typeof data === 'string' ? data.substring(0, TEXT_LIMIT) : ''}...
                   </span>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-md text-xs p-2 break-words">
@@ -195,12 +199,16 @@ function JsonValue({ data }: { data: any }) {
           </div>
         );
       }
-      return <span className="text-emerald-500">{`"${data}"`}</span>;
+      return (
+        <span className="text-emerald-500">{typeof data === 'string' ? `"${data}"` : ''}</span>
+      );
     case 'number':
-      return <span className="text-amber-500">{data}</span>;
+      return <span className="text-amber-500">{typeof data === 'number' ? data : ''}</span>;
     case 'boolean':
-      return <span className="text-blue-500">{data.toString()}</span>;
+      return (
+        <span className="text-blue-500">{typeof data === 'boolean' ? data.toString() : ''}</span>
+      );
     default:
-      return <span>{String(data)}</span>;
+      return <span>{data !== undefined && data !== null ? String(data) : ''}</span>;
   }
 }

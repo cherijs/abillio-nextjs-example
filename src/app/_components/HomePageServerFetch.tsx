@@ -49,7 +49,6 @@ export default async function HomePageServerFetch({ lang }: { lang: 'en' | 'lv' 
               className="text-sm/6 font-[family-name:var(--font-geist-mono)]"
               dangerouslySetInnerHTML={{ __html: dict.serverFetchCaveats }}
             />
-
             <p className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
               {dict.requestExampleServer}
             </p>
