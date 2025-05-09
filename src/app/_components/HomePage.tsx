@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/pagination';
 import { buttonVariants } from '@/components/ui/button';
 import { JsonViewer } from '@/components/ui/json-tree-viewer';
+import { Badge } from '@/components/ui/badge';
 
 type AbillioPagination = {
   page?: number;
@@ -69,7 +70,36 @@ export default function HomePage({ lang }: { lang: 'en' | 'lv' }) {
     <div className="px-8 py-20 font-[family-name:var(--font-geist-sans)] flex flex-col items-center">
       <main className="flex flex-col gap-[32px] items-center sm:items-start w-full max-w-2xl flex-grow">
         <HomePageHeader dict={dict} otherLang={otherLang} lang={lang} activePage="client" />
-        <div className="w-full max-w-2xl mt-8">
+
+        {/* Info block for usage and description */}
+        <div className="flex flex-col gap-4">
+          <Badge variant="secondary">Client component</Badge>
+          <h2 className="text-lg font-bold mb-2 ">{dict.clientSideFetch}</h2>
+          <div className="flex flex-col gap-2">
+            <p
+              className="text-sm/6 font-[family-name:var(--font-geist-mono)]"
+              dangerouslySetInnerHTML={{ __html: dict.clientInfo }}
+            />
+            <p className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
+              {dict.requestExampleClient}
+            </p>
+            <pre>{`useEffect(() => {
+  fetch('/api/abillio/services?lang=' + lang)
+    .then(res => res.json())
+    .then(data => {
+      setServices(data.result);
+      setPagination(data.pagination);
+    });
+}, [lang]);
+`}</pre>
+          </div>
+        </div>
+
+        {error && (
+          <div className="text-red-500 mt-2">{dict.errorLoadingData.replace('{error}', error)}</div>
+        )}
+
+        <div className="w-full max-w-2xl">
           <h2 className="text-lg font-bold mb-2 ">{dict.abillioServices}</h2>
           <div className="flex flex-col items-start">
             {pagination && (
@@ -187,12 +217,10 @@ export default function HomePage({ lang }: { lang: 'en' | 'lv' }) {
                   : dict.noServices}
             </code>
           </pre> */}
-          {!loading && services && <JsonViewer data={services} />}
+          {!loading && services && (
+            <JsonViewer data={services} className="rounded-md p-4 my-4 border" />
+          )}
         </div>
-
-        {error && (
-          <div className="text-red-500 mt-2">{dict.errorLoadingData.replace('{error}', error)}</div>
-        )}
       </main>
     </div>
   );

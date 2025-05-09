@@ -71,7 +71,11 @@ const pagination = data.pagination;
               .replace('{total}', pagination?.count ? String(pagination.count) : '-')}
           </div>
           {/* <pre className="max-h-[400px] overflow-y-auto">{JSON.stringify(services, null, 2)}</pre> */}
-          {services ? <JsonViewer data={services} /> : dict.loading}
+          {services ? (
+            <JsonViewer data={services} className="rounded-md p-4 my-4 border" />
+          ) : (
+            dict.loading
+          )}
         </div>
       </main>
     </div>
