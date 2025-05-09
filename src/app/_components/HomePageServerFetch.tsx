@@ -25,7 +25,9 @@ export default async function HomePageServerFetch({ lang }: { lang: 'en' | 'lv' 
     process.env.NEXT_PUBLIC_BASE_URL ||
     (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`) ||
     'http://localhost:3000';
-  const res = await fetch(`${baseUrl}/api/abillio/services?lang=${lang}&country=LV`, { cache: 'no-store' });
+  const res = await fetch(`${baseUrl}/api/abillio/services?lang=${lang}&country=LV`, {
+    cache: 'no-store',
+  });
   const data = await res.json();
   const services = data.result as unknown[];
   const pagination = data.pagination as AbillioPagination | null;
@@ -86,27 +88,4 @@ const pagination = data.pagination;
       </main>
     </div>
   );
-}
-
-export async function abillioApiRequest<T = unknown>(
-  endpoint: string,
-  body: any = {},
-  method: 'GET' | 'POST' = 'GET',
-  query: Record<string, string> = {}
-): Promise<T> {
-  // ... izveido URL ...
-  const res = await fetch(url, { ... });
-
-  // Pārbaudi Content-Type
-  const contentType = res.headers.get('content-type');
-  if (!contentType || !contentType.includes('application/json')) {
-    const text = await res.text();
-    throw new Error(`API did not return JSON. Response: ${text.slice(0, 200)}`);
-  }
-
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
-  }
-
-  return res.json();
 }
