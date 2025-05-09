@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 // import { abillioApiRequest } from "../../lib/abillio";
 import { getDictionary } from '../_dictionaries';
 import { useState } from 'react';
@@ -24,32 +24,35 @@ export default function HomePage({ lang }: { lang: 'en' | 'lv' }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const getServices = async (page: number) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/abillio/services?lang=${lang}&p=${page}`);
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+  const getServices = useCallback(
+    async (page: number) => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/abillio/services?lang=${lang}&p=${page}`);
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
+        setServices(data.result);
+        setPagination(data.pagination);
+        setLoading(false);
+        return data;
+      } catch (error) {
+        setLoading(false);
+        setServices([]);
+        setPagination(null);
+        console.error('Neizdevās ielādēt datus:', error);
+        setError(error instanceof Error ? error.message : String(error));
+        return { error: true, message: error instanceof Error ? error.message : String(error) };
       }
-      const data = await res.json();
-      setServices(data.result);
-      setPagination(data.pagination);
-      setLoading(false);
-      return data;
-    } catch (error) {
-      setLoading(false);
-      setServices([]);
-      setPagination(null);
-      console.error('Neizdevās ielādēt datus:', error);
-      setError(error instanceof Error ? error.message : String(error));
-      return { error: true, message: error instanceof Error ? error.message : String(error) };
-    }
-  };
+    },
+    [lang],
+  );
 
   useEffect(() => {
     setLoading(true);
     getServices(page);
-  }, [lang, page]);
+  }, [lang, page, getServices]);
 
   const otherLang = lang === 'en' ? 'lv' : 'en';
 
