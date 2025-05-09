@@ -3,7 +3,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useCallback } from 'react';
-// import { abillioApiRequest } from "../../lib/abillio";
 import { getDictionary } from '../_dictionaries';
 import { useState } from 'react';
 
@@ -124,13 +123,39 @@ export default function HomePage({ lang }: { lang: 'en' | 'lv' }) {
               <br />
             </p>
             <p className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
-              Lietošanas piemērs Next.js lapā:
+              Pieprasījuma piemērs React komponentā:
             </p>
-            <pre className="border border-white/20 p-4 rounded overflow-x-auto text-xs font-[family-name:var(--font-geist-mono)]">{`import HomePage from "./_components/HomePage";
+            <pre className="border border-white/20 p-4 rounded overflow-x-auto text-xs font-[family-name:var(--font-geist-mono)]">{`
+const getServices = useCallback(
+  async (page: number) => {
+    setLoading(true);
+    try {
+      const res = await fetch(
+        "/api/abillio/services?lang=" + lang + "&p=" + page
+      );
+      if (!res.ok) {
+        throw new Error("HTTP error! status: " + res.status);
+      }
+      const data = await res.json();
+      setServices(data.result);
+      setPagination(data.pagination);
+      setLoading(false);
+      return data;
+    } catch (error) {
+      setLoading(false);
+      setServices([]);
+      setPagination(null);
+      setError(error instanceof Error ? error.message : String(error));
+      return { error: true, message: error instanceof Error ? error.message : String(error) };
+    }
+  },
+  [lang],
+);
 
-export default function Page({ params }) {
-  return <HomePage lang={params.lang} />;
-}
+useEffect(() => {
+  setLoading(true);
+  getServices(page);
+}, [lang, page, getServices]);
 `}</pre>
             <p className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
               !!! Šis ir <b>client-side komponents</b> (ir <code>use client</code>), tāpēc to var

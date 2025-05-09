@@ -2,6 +2,8 @@ import axios from 'axios';
 import { Base64 } from 'js-base64';
 import crypto from 'crypto';
 
+// !!! Newer import this file in frontend (client side), only server side is allowed
+
 const API_URL = process.env.ABILLIO_API_URL || 'https://api-staging.abill.io';
 const API_KEY = process.env.ABILLIO_API_KEY!;
 const API_SECRET = process.env.ABILLIO_API_SECRET!;
@@ -16,6 +18,9 @@ export async function abillioApiRequest<T = unknown, P = Record<string, unknown>
   method: 'GET' | 'POST' = 'GET',
   params: Record<string, unknown> = {},
 ): Promise<T> {
+  // !!! Newer call this method in client side (frontend)
+  // !!! you will expose your api-key and secret-key
+
   const request_path = `/v1/${endpoint}/`;
   const fullPayload = { ...payload, request: request_path, nonce: Date.now() };
   const encoded_payload = JSON.stringify(fullPayload);

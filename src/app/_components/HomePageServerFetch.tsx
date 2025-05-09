@@ -91,14 +91,20 @@ export default async function HomePageServerFetch({ lang }: { lang: 'en' | 'lv' 
               <br />
             </p>
             <p className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
-              Lietošanas piemērs Next.js lapā:
+              Pieprasījuma piemērs servera pusē:
             </p>
-
-            <pre className="border border-white/20 p-4 rounded overflow-x-auto text-xs font-[family-name:var(--font-geist-mono)]">{`import HomePageServerFetch from "./_components/HomePageServerFetch";
-
-export default function Page({ params }) {
-  return <HomePageServerFetch lang={params.lang} />;
-}
+            <pre className="border border-white/20 p-4 rounded overflow-x-auto text-xs font-[family-name:var(--font-geist-mono)]">{`
+const baseUrl =
+  process.env.NEXT_PUBLIC_BASE_URL ||
+  (process.env.VERCEL_URL && \`https://\${process.env.VERCEL_URL}\`) ||
+  'http://localhost:3000';
+const res = await fetch(
+  \`\${baseUrl}/api/abillio/services?lang=\${lang}\`,
+  { cache: 'no-store' }
+);
+const data = await res.json();
+const services = data.result;
+const pagination = data.pagination;
 `}</pre>
             <p className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
               !!! Šis ir <b>servera komponents</b> (nav <code>use client</code>), tāpēc to var

@@ -94,13 +94,14 @@ export default async function HomePageDirectAbillio({ lang }: { lang: 'en' | 'lv
               <br />
             </p>
             <p className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
-              Lietošanas piemērs Next.js lapā:
+              Pieprasījuma piemērs servera pusē:
             </p>
-            <pre className="border border-white/20 p-4 rounded overflow-x-auto text-xs font-[family-name:var(--font-geist-mono)]">{`import HomePageDirectAbillio from "./_components/HomePageDirectAbillio";
+            <pre className="border border-white/20 p-4 rounded overflow-x-auto text-xs font-[family-name:var(--font-geist-mono)]">{`
+import { abillioApiRequest } from '@/lib/abillio';
 
-export default function Page({ params }) {
-  return <HomePageDirectAbillio lang={params.lang} />;
-}
+const data = await abillioApiRequest('services', {}, 'GET', { lang });
+const services = data.result;
+const pagination = data.pagination;
 `}</pre>
             <p className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
               !!! Šis ir <b>servera komponents</b> (nav <code>use client</code>), tāpēc to var
