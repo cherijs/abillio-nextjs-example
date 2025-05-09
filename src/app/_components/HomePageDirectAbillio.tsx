@@ -9,6 +9,7 @@ import { abillioApiRequest } from '@/lib/abillio';
 import HomePageHeader from './Header';
 import dynamic from 'next/dynamic';
 import { JsonViewer } from '@/components/ui/json-tree-viewer';
+import { Badge } from '@/components/ui/badge';
 
 type AbillioPagination = {
   page?: number;
@@ -38,6 +39,7 @@ export default async function HomePageDirectAbillio({ lang }: { lang: 'en' | 'lv
 
         {/* Info block for usage and description */}
         <div className="flex flex-col gap-4">
+          <Badge variant="destructive">Servera komponents</Badge>
           <h2 className="text-lg font-bold mb-2 ">{dict.directAbillioFetch}</h2>
           <div className="flex flex-col gap-2">
             <p
