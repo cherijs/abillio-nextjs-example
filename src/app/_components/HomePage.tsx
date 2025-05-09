@@ -75,10 +75,15 @@ export default function HomePage({ lang }: { lang: 'en' | 'lv' }) {
         <div className="flex flex-col gap-4">
           <Badge variant="secondary">Client component</Badge>
           <h2 className="text-lg font-bold mb-2 ">{dict.clientSideFetch}</h2>
+
           <div className="flex flex-col gap-2">
             <p
               className="text-sm/6 font-[family-name:var(--font-geist-mono)]"
               dangerouslySetInnerHTML={{ __html: dict.clientInfo }}
+            />
+            <p
+              className="text-sm/6 font-[family-name:var(--font-geist-mono)]"
+              dangerouslySetInnerHTML={{ __html: dict.clientCaveats }}
             />
             <p className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
               {dict.requestExampleClient}
@@ -92,10 +97,6 @@ export default function HomePage({ lang }: { lang: 'en' | 'lv' }) {
     });
 }, [lang]);
 `}</pre>
-            <p
-              className="text-sm/6 font-[family-name:var(--font-geist-mono)]"
-              dangerouslySetInnerHTML={{ __html: dict.clientCaveats }}
-            />
           </div>
         </div>
 

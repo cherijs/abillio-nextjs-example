@@ -18,7 +18,7 @@
   "serverFetchInfo": "Šis komponents veic <b>fetch uz /api/abillio/services</b> servera pusē, izmantojot <b>await</b>.<br /><b>Priekšrocība:</b> vari izmantot Next.js API autentifikāciju, rate limiting, logging u.c.<br />",
   "requestExampleServer": "Pieprasījuma piemērs servera pusē:",
   "requestExampleClient": "Pieprasījuma piemērs React komponentā:",
-  "clientInfo": "Šis komponents veic <b>fetch uz /api/abillio/services</b> <b>no klienta puses</b> (ar <code>useEffect</code> un <code>useState</code>).<br /><b>Priekšrocība:</b> noderīgs, ja vajag dinamisku, interaktīvu UI vai live datus.<br />",
+  "clientInfo": "Šis komponents veic <b>fetch uz /api/abillio/services</b> <b>no klienta puses</b> (ar <code>useEffect</code> un <code>useState</code>).<br /><b>Priekšrocība:</b> visdrošākais un ieteicamākais veids, kā lietot Abillio API no frontend, bet obligāti caur savu backend proxy (Next.js API). Noderīgs, ja vajag dinamisku, interaktīvu UI vai live datus.<br />",
   "showingResults": "Rāda {count} no {total} rezultātiem",
   "loading": "Ielādē...",
   "noServices": "Nav pakalpojumu",
@@ -27,5 +27,5 @@
   "serverComponentAlert": "Šis ir servera komponents (nav 'use client'), tāpēc to var izmantot tikai servera lapās vai wrapper komponentos.",
   "directAbillioCaveats": "<b>Trūkumi:</b> Lapa ielādējas tikai tad, kad dati ir saņemti no Abillio API, tāpēc lietotājs var redzēt tukšu ekrānu, kamēr dati tiek ielādēti. Nav klienta puses loading stāvokļa vai skeleton ekrāna – viss notiek serverī. Nav piemērots ļoti dinamiskam vai interaktīvam UI.",
   "serverFetchCaveats": "<b>Trūkumi:</b> Lapa ielādējas tikai tad, kad dati ir saņemti no Next.js API, tāpēc lietotājs var redzēt tukšu ekrānu, kamēr dati tiek ielādēti. Nav klienta puses loading stāvokļa vai skeleton ekrāna – viss notiek serverī. Nav piemērots ļoti dinamiskam vai interaktīvam UI.",
-  "clientCaveats": "<b>Trūkumi:</b> Dati tiek ielādēti pēc lapas attēlošanas, tāpēc lietotājs sākumā redz loading stāvokli vai tukšu saturu. Vairāk tīkla pieprasījumu no pārlūka. Nav piemērots sensitīviem datiem vai ja svarīgs SEO."
+  "clientCaveats": "<b>Trūkumi:</b> Vairāk tīkla pieprasījumu no pārlūka. Jāizmanto savs Next.js API (proxy), kas savienojas ar īsto Abillio API, lai nekad nenopublicētu API key un secret klienta pusē."
 }

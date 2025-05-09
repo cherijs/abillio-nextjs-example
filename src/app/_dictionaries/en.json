@@ -18,7 +18,7 @@
   "serverFetchInfo": "This component does a <b>fetch to /api/abillio/services</b> on the server side using <b>await</b>.<br /><b>Advantage:</b> you can use Next.js API authentication, rate limiting, logging, etc.<br />",
   "requestExampleServer": "Request example on the server side:",
   "requestExampleClient": "Request example in a React component:",
-  "clientInfo": "This component does a <b>fetch to /api/abillio/services</b> <b>on the client side</b> (with <code>useEffect</code> and <code>useState</code>).<br /><b>Advantage:</b> useful for dynamic, interactive UI or live data.<br />",
+  "clientInfo": "This component does a <b>fetch to /api/abillio/services</b> <b>on the client side</b> (with <code>useEffect</code> and <code>useState</code>).<br /><b>Advantage:</b> The safest and recommended way to use the Abillio API from the frontend, but always through your own backend proxy (Next.js API). Useful for dynamic, interactive UI or live data.<br />",
   "showingResults": "Showing {count} of {total} results",
   "loading": "Loading...",
   "noServices": "No services",
@@ -27,5 +27,5 @@
   "serverComponentAlert": "This is a server component (not 'use client'), so it can only be used in server pages or wrapper components.",
   "directAbillioCaveats": "<b>Caveats:</b> The page loads only after data is fetched from the Abillio API, so the user may see a blank screen while waiting. There is no client-side loading state or skeleton; everything happens on the server. Not suitable for highly dynamic or interactive UI.",
   "serverFetchCaveats": "<b>Caveats:</b> The page loads only after data is fetched from your Next.js API, so the user may see a blank screen while waiting. There is no client-side loading state or skeleton; everything happens on the server. Not suitable for highly dynamic or interactive UI.",
-  "clientCaveats": "<b>Caveats:</b> Data is loaded after the page is rendered, so the user may see a loading state or empty content at first. More network requests from the browser. Not suitable for sensitive data or when SEO is important."
+  "clientCaveats": "<b>Caveats:</b> More network requests from the browser. You must use your own Next.js API (proxy) to connect to the real Abillio API, so that your API key and secret are never exposed to the client side."
 }
