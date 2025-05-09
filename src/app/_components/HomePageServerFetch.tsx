@@ -4,11 +4,12 @@
  * Priekšrocība: vari izmantot Next.js API autentifikāciju, rate limiting u.c.
  */
 
-import { AlertCircle, Terminal } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { getDictionary } from '../_dictionaries';
 import HomePageHeader from './Header';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { JsonViewer } from '@/components/ui/json-tree-viewer';
 
 type AbillioPagination = {
   page?: number;
@@ -72,9 +73,8 @@ const pagination = data.pagination;
           <div className="mt-2 text-xs text-gray-500">
             Showing {services.length} of {pagination?.count ?? '-'} results
           </div>
-          <pre className="border border-white/5 p-4 rounded overflow-x-auto text-xs font-[family-name:var(--font-geist-mono)]">
-            {JSON.stringify(services, null, 2)}
-          </pre>
+          {/* <pre className="max-h-[400px] overflow-y-auto">{JSON.stringify(services, null, 2)}</pre> */}
+          {services ? <JsonViewer data={services} /> : 'Loading...'}
         </div>
       </main>
     </div>

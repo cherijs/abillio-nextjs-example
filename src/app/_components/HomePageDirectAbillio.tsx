@@ -7,6 +7,8 @@
 import { getDictionary } from '../_dictionaries';
 import { abillioApiRequest } from '@/lib/abillio';
 import HomePageHeader from './Header';
+import dynamic from 'next/dynamic';
+import { JsonViewer } from '@/components/ui/json-tree-viewer';
 
 type AbillioPagination = {
   page?: number;
@@ -61,9 +63,8 @@ const pagination = data.pagination;
           <div className="mt-2 text-xs text-gray-500">
             Showing {services.length} of {pagination?.count ?? '-'} results
           </div>
-          <pre className="border border-white/5 p-4 rounded overflow-x-auto text-xs font-[family-name:var(--font-geist-mono)]">
-            {JSON.stringify(services, null, 2)}
-          </pre>
+          {/* <pre className="max-h-[400px] overflow-y-auto">{JSON.stringify(services, null, 2)}</pre> */}
+          {services ? <JsonViewer data={services} /> : 'Loading...'}
         </div>
       </main>
     </div>

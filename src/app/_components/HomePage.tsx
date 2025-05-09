@@ -4,6 +4,17 @@ import { useEffect, useCallback } from 'react';
 import { getDictionary } from '../_dictionaries';
 import { useState } from 'react';
 import HomePageHeader from './Header';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
+import { buttonVariants } from '@/components/ui/button';
+import { JsonViewer } from '@/components/ui/json-tree-viewer';
 
 type AbillioPagination = {
   page?: number;
@@ -60,41 +71,111 @@ export default function HomePage({ lang }: { lang: 'en' | 'lv' }) {
         <HomePageHeader dict={dict} otherLang={otherLang} lang={lang} activePage="client" />
         <div className="w-full max-w-2xl mt-8">
           <h2 className="text-lg font-bold mb-2 ">{dict.abillioServices}</h2>
-          {pagination && (
-            <div className="flex gap-2">
-              <span>
-                Page {pagination ? pagination.page : '-'} of{' '}
-                {pagination ? pagination.num_pages : '-'}
-              </span>
-              <button
-                className="underline"
-                disabled={!pagination?.previous_page}
-                onClick={() =>
-                  typeof pagination?.previous_page === 'number' && setPage(pagination.previous_page)
-                }
-              >
-                Previous
-              </button>
-              <button
-                className="underline"
-                disabled={!pagination?.next_page}
-                onClick={() =>
-                  typeof pagination?.next_page === 'number' && setPage(pagination.next_page)
-                }
-              >
-                Next
-              </button>
-            </div>
-          )}
+          <div className="flex flex-col items-start">
+            {pagination && (
+              <Pagination className="mx-auto flex w-full justify-start">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      aria-disabled={!pagination.previous_page}
+                      tabIndex={pagination.previous_page ? 0 : -1}
+                      onClick={
+                        pagination.previous_page
+                          ? (e) => {
+                              e.preventDefault();
+                              setPage(pagination.previous_page as number);
+                            }
+                          : undefined
+                      }
+                      href="#"
+                      style={
+                        !pagination.previous_page
+                          ? { pointerEvents: 'none', opacity: 0.5 }
+                          : undefined
+                      }
+                      className={buttonVariants({
+                        variant: !pagination.previous_page ? 'ghost' : 'ghost',
+                        size: 'icon',
+                      })}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: pagination.num_pages ?? 1 }, (_, i) => {
+                    const pageNum = i + 1;
+                    // Show first, last, current, and neighbors; ellipsis for gaps
+                    const isActive = pageNum === pagination.page;
+                    const isEdge = pageNum === 1 || pageNum === (pagination.num_pages ?? 1);
+                    const isNear = Math.abs(pageNum - (pagination.page ?? 1)) <= 1;
+                    if (isEdge || isNear) {
+                      return (
+                        <PaginationItem key={pageNum}>
+                          <PaginationLink
+                            isActive={isActive}
+                            href="#"
+                            onClick={
+                              isActive
+                                ? undefined
+                                : (e) => {
+                                    e.preventDefault();
+                                    setPage(pageNum);
+                                  }
+                            }
+                            aria-current={isActive ? 'page' : undefined}
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    }
+                    // Insert ellipsis after first or before last if needed
+                    if (
+                      (pageNum === 2 && (pagination.page ?? 1) > 3) ||
+                      (pageNum === (pagination.num_pages ?? 1) - 1 &&
+                        (pagination.page ?? 1) < (pagination.num_pages ?? 1) - 2)
+                    ) {
+                      return (
+                        <PaginationItem key={`ellipsis-${pageNum}`}>
+                          {' '}
+                          <PaginationEllipsis />{' '}
+                        </PaginationItem>
+                      );
+                    }
+                    return null;
+                  })}
 
-          {loading || !services ? (
-            ''
-          ) : (
-            <div className="mt-2 text-xs text-gray-500">
-              Showing {services.length} of {pagination ? pagination.count : '-'} results
-            </div>
-          )}
-          <pre>
+                  <PaginationItem>
+                    <PaginationNext
+                      aria-disabled={!pagination.next_page}
+                      tabIndex={pagination.next_page ? 0 : -1}
+                      onClick={
+                        pagination.next_page
+                          ? (e) => {
+                              e.preventDefault();
+                              setPage(pagination.next_page as number);
+                            }
+                          : undefined
+                      }
+                      href="#"
+                      style={
+                        !pagination.next_page ? { pointerEvents: 'none', opacity: 0.5 } : undefined
+                      }
+                      className={buttonVariants({
+                        variant: !pagination.next_page ? 'ghost' : 'ghost',
+                        size: 'icon',
+                      })}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+            {loading || !services ? (
+              ''
+            ) : (
+              <div className="mt-2 text-xs text-gray-500">
+                Showing {services.length} of {pagination ? pagination.count : '-'} results
+              </div>
+            )}
+          </div>
+          {/* <pre className="max-h-[400px] overflow-y-auto">
             <code>
               {' '}
               {loading
@@ -103,7 +184,8 @@ export default function HomePage({ lang }: { lang: 'en' | 'lv' }) {
                   ? JSON.stringify(services, null, 2)
                   : 'No services'}
             </code>
-          </pre>
+          </pre> */}
+          {!loading && services && <JsonViewer data={services} />}
         </div>
 
         {error && <div className="text-red-500 mt-2">Kļūda ielādējot datus: {error}</div>}
