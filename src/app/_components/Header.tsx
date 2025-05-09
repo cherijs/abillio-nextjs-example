@@ -1,5 +1,19 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useCallback } from 'react';
+import { ModeToggle } from '@/components/ui/mode-toggle';
 
 export type HomePageHeaderDict = {
   getStarted: string;
@@ -17,6 +31,27 @@ export type HomePageHeaderDict = {
   directAbillioFetchDesc: string;
 };
 
+const NAV_OPTIONS = [
+  {
+    value: 'client',
+    getHref: (lang: string) => `/${lang}`,
+    getLabel: (dict: HomePageHeaderDict) => dict.clientSideFetch,
+    getDesc: (dict: HomePageHeaderDict) => dict.clientSideFetchDesc,
+  },
+  {
+    value: 'server-fetch',
+    getHref: (lang: string) => `/${lang}/server-fetch`,
+    getLabel: (dict: HomePageHeaderDict) => dict.serverSideFetch,
+    getDesc: (dict: HomePageHeaderDict) => dict.serverSideFetchDesc,
+  },
+  {
+    value: 'direct-abillio',
+    getHref: (lang: string) => `/${lang}/direct-abillio`,
+    getLabel: (dict: HomePageHeaderDict) => dict.directAbillioFetch,
+    getDesc: (dict: HomePageHeaderDict) => dict.directAbillioFetchDesc,
+  },
+];
+
 export default function HomePageHeader({
   dict,
   otherLang,
@@ -28,6 +63,18 @@ export default function HomePageHeader({
   lang: string;
   activePage: 'client' | 'server-fetch' | 'direct-abillio';
 }) {
+  const router = useRouter();
+
+  const handleChange = useCallback(
+    (value: string) => {
+      const nav = NAV_OPTIONS.find((n) => n.value === value);
+      if (nav) {
+        router.push(nav.getHref(lang));
+      }
+    },
+    [lang, router],
+  );
+
   return (
     <>
       <Image
@@ -66,33 +113,25 @@ export default function HomePageHeader({
         >
           {dict.readDocs}
         </a>
-
-        {/* Navigation for demo variants */}
-
-        <Link
-          href={`/${lang}`}
-          className={`rounded-full border h-10 sm:h-12  border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-xs py-2 px-4 sm:px-5 w-full sm:w-auto text-center  ${activePage === 'client' ? '!bg-white !text-black' : ''}`}
-        >
-          {dict.clientSideFetch}
-          <br />
-          {dict.clientSideFetchDesc}
-        </Link>
-        <Link
-          href={`/${lang}/server-fetch`}
-          className={`rounded-full border h-10 sm:h-12  border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-xs py-2 px-4 sm:px-5 w-full sm:w-auto text-center  ${activePage === 'server-fetch' ? '!bg-white !text-black' : ''}`}
-        >
-          {dict.serverSideFetch}
-          <br />
-          {dict.serverSideFetchDesc}
-        </Link>
-        <Link
-          href={`/${lang}/direct-abillio`}
-          className={`rounded-full border h-10 sm:h-12  border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-xs py-2 px-4 sm:px-5 w-full sm:w-auto text-center  ${activePage === 'direct-abillio' ? '!bg-white !text-black' : ''}`}
-        >
-          {dict.directAbillioFetch}
-          <br />
-          {dict.directAbillioFetchDesc}
-        </Link>
+      </div>
+      <div className="w-full sm:w-auto mt-4 sm:mt-0 flex items-center gap-2">
+        <ModeToggle />
+        <Select value={activePage} onValueChange={handleChange}>
+          <SelectTrigger className="w-[260px]">
+            <SelectValue placeholder="Select view" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Demo variants</SelectLabel>
+              {NAV_OPTIONS.map((nav) => (
+                <SelectItem key={nav.value} value={nav.value}>
+                  <span className="font-semibold">{nav.getLabel(dict)}</span>
+                  <span className="block text-xs text-gray-500">{nav.getDesc(dict)}</span>
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
       </div>
     </>
   );

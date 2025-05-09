@@ -3,10 +3,12 @@
  * Šis komponents veic fetch uz /api/abillio/services servera pusē, izmantojot await.
  * Priekšrocība: vari izmantot Next.js API autentifikāciju, rate limiting u.c.
  */
-import Image from 'next/image';
-import Link from 'next/link';
+
+import { AlertCircle, Terminal } from 'lucide-react';
 import { getDictionary } from '../_dictionaries';
-import HomePageHeader from './HomePageHeader';
+import HomePageHeader from './Header';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 
 type AbillioPagination = {
   page?: number;
@@ -30,11 +32,12 @@ export default async function HomePageServerFetch({ lang }: { lang: 'en' | 'lv' 
   const otherLang = lang === 'en' ? 'lv' : 'en';
 
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
+    <div className="px-8 py-20 font-[family-name:var(--font-geist-sans)] flex flex-col items-center">
+      <main className="flex flex-col gap-[32px] items-center sm:items-start w-full max-w-2xl flex-grow">
         <HomePageHeader dict={dict} otherLang={otherLang} lang={lang} activePage="server-fetch" />
 
         <div className="flex flex-col gap-4">
+          <Badge variant="destructive">Servera komponents</Badge>
           <h2 className="text-lg font-bold mb-2 ">{dict.serverSideFetch}</h2>
           <div className="flex flex-col gap-2">
             <p
@@ -44,11 +47,7 @@ export default async function HomePageServerFetch({ lang }: { lang: 'en' | 'lv' 
             <p className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
               {dict.requestExampleServer}
             </p>
-            <pre className="border border-white/20 p-4 rounded overflow-x-auto text-xs font-[family-name:var(--font-geist-mono)]">{`
-const baseUrl =
-  process.env.NEXT_PUBLIC_BASE_URL ||
-  (process.env.VERCEL_URL && \`https://${process.env.VERCEL_URL}\`) ||
-  'http://localhost:3000';
+            <pre>{`const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 const res = await fetch(
   \`${baseUrl}/api/abillio/services?lang=${lang}\`,
   { cache: 'no-store' }
@@ -57,7 +56,25 @@ const data = await res.json();
 const services = data.result;
 const pagination = data.pagination;
 `}</pre>
+
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Servera komponents</AlertTitle>
+              <AlertDescription>
+                Šis ir servera komponents nav &quot;use client&quot;, tāpēc to var izmantot tikai
+                servera lapās vai wrapper komponentos.
+              </AlertDescription>
+            </Alert>
           </div>
+        </div>
+        <div className="w-full max-w-2xl mt-8">
+          <h2 className="text-lg font-bold mb-2 ">{dict.abillioServices}</h2>
+          <div className="mt-2 text-xs text-gray-500">
+            Showing {services.length} of {pagination?.count ?? '-'} results
+          </div>
+          <pre className="border border-white/5 p-4 rounded overflow-x-auto text-xs font-[family-name:var(--font-geist-mono)]">
+            {JSON.stringify(services, null, 2)}
+          </pre>
         </div>
       </main>
     </div>
