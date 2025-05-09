@@ -48,14 +48,20 @@ export default async function HomePageDirectAbillio({ lang }: { lang: 'en' | 'lv
               className="text-sm/6 font-[family-name:var(--font-geist-mono)]"
               dangerouslySetInnerHTML={{ __html: dict.directAbillioInfo }}
             />
+            <p
+              className="text-sm/6 font-[family-name:var(--font-geist-mono)]"
+              dangerouslySetInnerHTML={{ __html: dict.directAbillioCaveats }}
+            />
             <p className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
               {dict.requestExampleServer}
             </p>
+
             <pre>{`import { abillioApiRequest } from '@/lib/abillio';
 const data = await abillioApiRequest('services', {}, 'GET', { lang });
 const services = data.result;
 const pagination = data.pagination;
 `}</pre>
+
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>{dict.serverComponent}</AlertTitle>

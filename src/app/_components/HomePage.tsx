@@ -92,6 +92,10 @@ export default function HomePage({ lang }: { lang: 'en' | 'lv' }) {
     });
 }, [lang]);
 `}</pre>
+            <p
+              className="text-sm/6 font-[family-name:var(--font-geist-mono)]"
+              dangerouslySetInnerHTML={{ __html: dict.clientCaveats }}
+            />
           </div>
         </div>
 

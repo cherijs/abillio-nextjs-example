@@ -14,15 +14,18 @@
   "serverSideFetchDesc": "(proxy -> Abillio)",
   "directAbillioFetch": "Server-side fetch",
   "directAbillioFetchDesc": "(direct to Abillio)",
-  "directAbillioInfo": "This component uses <b>abillioApiRequest</b> to make a request directly to the Abillio API on the server side.<br />Advantage: no proxy, faster, but be careful with sensitive data and rate limiting.<br />",
-  "serverFetchInfo": "This component does a <b>fetch to /api/abillio/services</b> on the server side using <b>await</b>.<br />Advantage: you can use Next.js API authentication, rate limiting, logging, etc.<br />",
+  "directAbillioInfo": "This component uses <b>abillioApiRequest</b> to make a request directly to the Abillio API on the server side.<br /><b>Advantage:</b> no proxy, faster, but be careful with sensitive data and rate limiting.<br />",
+  "serverFetchInfo": "This component does a <b>fetch to /api/abillio/services</b> on the server side using <b>await</b>.<br /><b>Advantage:</b> you can use Next.js API authentication, rate limiting, logging, etc.<br />",
   "requestExampleServer": "Request example on the server side:",
   "requestExampleClient": "Request example in a React component:",
-  "clientInfo": "This component does a <b>fetch to /api/abillio/services</b> <b>on the client side</b> (with <code>useEffect</code> and <code>useState</code>).<br />Advantage: useful for dynamic, interactive UI or live data.<br />",
+  "clientInfo": "This component does a <b>fetch to /api/abillio/services</b> <b>on the client side</b> (with <code>useEffect</code> and <code>useState</code>).<br /><b>Advantage:</b> useful for dynamic, interactive UI or live data.<br />",
   "showingResults": "Showing {count} of {total} results",
   "loading": "Loading...",
   "noServices": "No services",
   "errorLoadingData": "Error loading data: {error}",
   "serverComponent": "Server component",
-  "serverComponentAlert": "This is a server component (not 'use client'), so it can only be used in server pages or wrapper components."
+  "serverComponentAlert": "This is a server component (not 'use client'), so it can only be used in server pages or wrapper components.",
+  "directAbillioCaveats": "<b>Caveats:</b> The page loads only after data is fetched from the Abillio API, so the user may see a blank screen while waiting. There is no client-side loading state or skeleton; everything happens on the server. Not suitable for highly dynamic or interactive UI.",
+  "serverFetchCaveats": "<b>Caveats:</b> The page loads only after data is fetched from your Next.js API, so the user may see a blank screen while waiting. There is no client-side loading state or skeleton; everything happens on the server. Not suitable for highly dynamic or interactive UI.",
+  "clientCaveats": "<b>Caveats:</b> Data is loaded after the page is rendered, so the user may see a loading state or empty content at first. More network requests from the browser. Not suitable for sensitive data or when SEO is important."
 }
