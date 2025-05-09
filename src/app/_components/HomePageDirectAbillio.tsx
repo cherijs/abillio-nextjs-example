@@ -1,11 +1,12 @@
-'use client';
-
+/**
+ * Version 2: Tiešs fetch uz Abillio API no servera puses
+ * Šis komponents izmanto abillioApiRequest, lai veiktu pieprasījumu tieši uz Abillio API servera pusē.
+ * Priekšrocība: nav starpnieka, ātrāks, bet jāuzmanās ar sensitīviem datiem un rate limiting.
+ */
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect } from 'react';
-// import { abillioApiRequest } from "../../lib/abillio";
 import { getDictionary } from '../_dictionaries';
-import { useState } from 'react';
+import { abillioApiRequest } from '@/lib/abillio';
 
 type AbillioPagination = {
   page?: number;
@@ -15,37 +16,16 @@ type AbillioPagination = {
   count?: number;
 };
 
-export default function HomePage({ lang }: { lang: 'en' | 'lv' }) {
+type AbillioServiceResponse = {
+  result: unknown[];
+  pagination?: AbillioPagination;
+};
+
+export default async function HomePageDirectAbillio({ lang }: { lang: 'en' | 'lv' }) {
   const dict = getDictionary(lang);
-
-  //   version 1 - fetch from our server side that connects to abillio api ising await
-  //   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`) || "http://localhost:3000";
-  //   const res = await fetch(`${baseUrl}/api/abillio/services?lang=${lang}`, {cache: "no-store"});
-  //   const services = await res.json();
-
-  //   version 2 - fetch from abillio api directly only on server side, remove "use client"
-  //   const services = await abillioApiRequest('services', {}, 'GET', { lang });
-
-  //   version 3 - fetch from abillio api directly with client side fetch (non blocking rendering)
-
-  const [services, setServices] = useState<unknown[]>([]);
-  const [pagination, setPagination] = useState<AbillioPagination | null>(null);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
-
-  const getServices = async (page: number) => {
-    const res = await fetch(`/api/abillio/services?lang=${lang}&p=${page}`);
-    const data = await res.json();
-    setServices(data.result);
-    setPagination(data.pagination);
-    setLoading(false);
-    return data;
-  };
-
-  useEffect(() => {
-    setLoading(true);
-    getServices(page);
-  }, [lang, page]);
+  const data = await abillioApiRequest<AbillioServiceResponse>('services', {}, 'GET', { lang });
+  const services = data.result;
+  const pagination = data.pagination ?? null;
 
   const otherLang = lang === 'en' ? 'lv' : 'en';
 
@@ -73,7 +53,6 @@ export default function HomePage({ lang }: { lang: 'en' | 'lv' }) {
           </li>
           <li className="tracking-[-.01em]">{dict.save}</li>
         </ol>
-
         <div className="flex gap-4 items-center flex-col sm:flex-row">
           <Link
             href={`/${otherLang}`}
@@ -81,7 +60,6 @@ export default function HomePage({ lang }: { lang: 'en' | 'lv' }) {
           >
             Switch to {otherLang.toUpperCase()}
           </Link>
-
           <a
             className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto "
             href="https://api-staging.abill.io/docs/api/"
@@ -91,7 +69,6 @@ export default function HomePage({ lang }: { lang: 'en' | 'lv' }) {
             {dict.readDocs}
           </a>
         </div>
-
         {/* Navigation for demo variants */}
         <nav className="flex gap-4 row-start-1 mb-4">
           <Link href={`/${lang}`} className="underline">
@@ -104,67 +81,53 @@ export default function HomePage({ lang }: { lang: 'en' | 'lv' }) {
             Server-side fetch (tieši uz Abillio)
           </Link>
         </nav>
-
         {/* Info block for usage and description */}
         <div className="flex flex-col gap-4">
-          <h2 className="text-lg font-bold mb-2 ">Client-side fetch (šī lapa)</h2>
+          <h2 className="text-lg font-bold mb-2 ">Server-side fetch tieši uz Abillio API</h2>
           <div className="flex flex-col gap-2">
             <p className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
-              Šis komponents veic <b>fetch uz /api/abillio/services</b> <b>no klienta puses</b> (ar{' '}
-              <code>useEffect</code> un <code>useState</code>).
+              Šis komponents izmanto <b>abillioApiRequest</b>, lai veiktu pieprasījumu tieši uz
+              Abillio API servera pusē.
               <br />
-              Priekšrocība: noderīgs, ja vajag dinamisku, interaktīvu UI vai live datus.
+              Priekšrocība: nav starpnieka, ātrāks, bet jāuzmanās ar sensitīviem datiem un rate
+              limiting.
               <br />
             </p>
             <p className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
               Lietošanas piemērs Next.js lapā:
             </p>
-            <pre className="border border-white/20 p-4 rounded overflow-x-auto text-xs font-[family-name:var(--font-geist-mono)]">{`import HomePage from "./_components/HomePage";
+            <pre className="border border-white/20 p-4 rounded overflow-x-auto text-xs font-[family-name:var(--font-geist-mono)]">{`import HomePageDirectAbillio from "./_components/HomePageDirectAbillio";
 
 export default function Page({ params }) {
-  return <HomePage lang={params.lang} />;
+  return <HomePageDirectAbillio lang={params.lang} />;
 }
 `}</pre>
             <p className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
-              !!! Šis ir <b>client-side komponents</b> (ir <code>use client</code>), tāpēc to var
-              izmantot tikai klienta lapās vai wrapper komponentos.
+              !!! Šis ir <b>servera komponents</b> (nav <code>use client</code>), tāpēc to var
+              izmantot tikai servera lapās vai wrapper komponentos.
             </p>
           </div>
         </div>
-
         <div className="w-full max-w-2xl mt-8">
           <h2 className="text-lg font-bold mb-2 ">{dict.abillioServices}</h2>
           {pagination && (
             <div className="flex gap-2">
               <span>
-                Page {pagination ? pagination.page : '-'} of{' '}
-                {pagination ? pagination.num_pages : '-'}
+                Page {pagination.page ?? '-'} of {pagination.num_pages ?? '-'}
               </span>
-              <button
-                className="underline"
-                disabled={!pagination?.previous_page}
-                onClick={() =>
-                  typeof pagination?.previous_page === 'number' && setPage(pagination.previous_page)
-                }
-              >
+              <button className="underline" disabled={!pagination?.previous_page}>
                 Previous
               </button>
-              <button
-                className="underline"
-                disabled={!pagination?.next_page}
-                onClick={() =>
-                  typeof pagination?.next_page === 'number' && setPage(pagination.next_page)
-                }
-              >
+              <button className="underline" disabled={!pagination?.next_page}>
                 Next
               </button>
             </div>
           )}
           <div className="mt-2 text-xs text-gray-500">
-            Showing {services.length} of {pagination ? pagination.count : '-'} results
+            Showing {services.length} of {pagination?.count ?? '-'} results
           </div>
           <pre className="border border-white/5 p-4 rounded overflow-x-auto text-xs font-[family-name:var(--font-geist-mono)]">
-            {loading ? 'Loading...' : JSON.stringify(services, null, 2)}
+            {JSON.stringify(services, null, 2)}
           </pre>
         </div>
       </main>

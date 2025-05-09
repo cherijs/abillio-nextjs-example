@@ -7,4 +7,4 @@ const dictionaries = { en, lv };
 
 export function getDictionary(locale: 'en' | 'lv') {
   return dictionaries[locale];
-} 
+}

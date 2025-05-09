@@ -14,7 +14,7 @@ export async function abillioApiRequest<T = unknown, P = Record<string, unknown>
   endpoint: string,
   payload: P = {} as P,
   method: 'GET' | 'POST' = 'GET',
-  params: Record<string, unknown> = {}
+  params: Record<string, unknown> = {},
 ): Promise<T> {
   const request_path = `/v1/${endpoint}/`;
   const fullPayload = { ...payload, request: request_path, nonce: Date.now() };
@@ -37,4 +37,4 @@ export async function abillioApiRequest<T = unknown, P = Record<string, unknown>
   console.log(API_URL + request_path);
   console.log(params);
   return response.data;
-} 
+}
