@@ -12,7 +12,7 @@ export default function HomePage({lang} : {
 }) {
   const dict = getDictionary(lang);
 
-  //   version 1 - fetch from our server side that connects to abillio api
+  //   version 1 - fetch from our server side that connects to abillio api ising await 
   //   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`) || "http://localhost:3000";
   //   const res = await fetch(`${baseUrl}/api/abillio/services?lang=${lang}`, {cache: "no-store"});
   //   const services = await res.json();
@@ -20,7 +20,7 @@ export default function HomePage({lang} : {
   //   version 2 - fetch from abillio api directly only on server side, remove "use client"
   //   const services = await abillioApiRequest('services', {}, 'GET', { lang });
 
-  //   version 3 - fetch from abillio api directly with client side fetch currentl solution
+  //   version 3 - fetch from abillio api directly with client side fetch (non blocking)
 
   const [services, setServices] = useState<any[]>([]);
   const [pagination, setPagination] = useState<any>(null);
