@@ -18,28 +18,32 @@ type AbillioPagination = {
 export default function HomePage({ lang }: { lang: 'en' | 'lv' }) {
   const dict = getDictionary(lang);
 
-  //   version 1 - fetch from our server side that connects to abillio api ising await
-  //   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`) || "http://localhost:3000";
-  //   const res = await fetch(`${baseUrl}/api/abillio/services?lang=${lang}`, {cache: "no-store"});
-  //   const services = await res.json();
-
-  //   version 2 - fetch from abillio api directly only on server side, remove "use client"
-  //   const services = await abillioApiRequest('services', {}, 'GET', { lang });
-
-  //   version 3 - fetch from abillio api directly with client side fetch (non blocking rendering)
-
   const [services, setServices] = useState<unknown[]>([]);
   const [pagination, setPagination] = useState<AbillioPagination | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const getServices = async (page: number) => {
-    const res = await fetch(`/api/abillio/services?lang=${lang}&p=${page}`);
-    const data = await res.json();
-    setServices(data.result);
-    setPagination(data.pagination);
-    setLoading(false);
-    return data;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/abillio/services?lang=${lang}&p=${page}`);
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      const data = await res.json();
+      setServices(data.result);
+      setPagination(data.pagination);
+      setLoading(false);
+      return data;
+    } catch (error) {
+      setLoading(false);
+      setServices([]);
+      setPagination(null);
+      console.error('Neizdevās ielādēt datus:', error);
+      setError(error instanceof Error ? error.message : String(error));
+      return { error: true, message: error instanceof Error ? error.message : String(error) };
+    }
   };
 
   useEffect(() => {
@@ -160,13 +164,20 @@ export default function Page({ params }) {
               </button>
             </div>
           )}
-          <div className="mt-2 text-xs text-gray-500">
-            Showing {services.length} of {pagination ? pagination.count : '-'} results
-          </div>
+
+          {loading || !services ? (
+            ''
+          ) : (
+            <div className="mt-2 text-xs text-gray-500">
+              Showing {services.length} of {pagination ? pagination.count : '-'} results
+            </div>
+          )}
           <pre className="border border-white/5 p-4 rounded overflow-x-auto text-xs font-[family-name:var(--font-geist-mono)]">
-            {loading ? 'Loading...' : JSON.stringify(services, null, 2)}
+            {loading ? 'Loading...' : services ? JSON.stringify(services, null, 2) : 'No services'}
           </pre>
         </div>
+
+        {error && <div className="text-red-500 mt-2">Kļūda ielādējot datus: {error}</div>}
       </main>
       <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
         <a
