@@ -4,7 +4,7 @@
  * Priekšrocība: nav starpnieka, ātrāks, bet jāuzmanās ar sensitīviem datiem un rate limiting.
  */
 import Image from 'next/image';
-import Link from 'next/link';
+// import Link from 'next/link';
 import { getDictionary } from '../_dictionaries';
 import { abillioApiRequest } from '@/lib/abillio';
 import HomePageHeader from './HomePageHeader';
@@ -37,18 +37,14 @@ export default async function HomePageDirectAbillio({ lang }: { lang: 'en' | 'lv
 
         {/* Info block for usage and description */}
         <div className="flex flex-col gap-4">
-          <h2 className="text-lg font-bold mb-2 ">Server-side fetch tieši uz Abillio API</h2>
+          <h2 className="text-lg font-bold mb-2 ">{dict.directAbillioFetch}</h2>
           <div className="flex flex-col gap-2">
+            <p
+              className="text-sm/6 font-[family-name:var(--font-geist-mono)]"
+              dangerouslySetInnerHTML={{ __html: dict.directAbillioInfo }}
+            />
             <p className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
-              Šis komponents izmanto <b>abillioApiRequest</b>, lai veiktu pieprasījumu tieši uz
-              Abillio API servera pusē.
-              <br />
-              Priekšrocība: nav starpnieka, ātrāks, bet jāuzmanās ar sensitīviem datiem un rate
-              limiting.
-              <br />
-            </p>
-            <p className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
-              Pieprasījuma piemērs servera pusē:
+              {dict.requestExampleServer}
             </p>
             <pre className="border border-white/20 p-4 rounded overflow-x-auto text-xs font-[family-name:var(--font-geist-mono)]">{`
 import { abillioApiRequest } from '@/lib/abillio';

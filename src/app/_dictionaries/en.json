@@ -6,5 +6,17 @@
   "save": "Save and see your changes instantly.",
   "deploy": "Deploy now",
   "readDocs": "Read our docs",
-  "abillioServices": "Abillio Services"
+  "abillioServices": "Abillio Services",
+  "switchLang": "Switch to",
+  "clientSideFetch": "Client-side fetch",
+  "clientSideFetchDesc": "(ajax to proxy)",
+  "serverSideFetch": "Server-side fetch",
+  "serverSideFetchDesc": "(proxy to Abillio)",
+  "directAbillioFetch": "Server-side fetch",
+  "directAbillioFetchDesc": "(direct to Abillio)",
+  "directAbillioInfo": "This component uses <b>abillioApiRequest</b> to make a request directly to the Abillio API on the server side.<br />Advantage: no proxy, faster, but be careful with sensitive data and rate limiting.<br />",
+  "serverFetchInfo": "This component does a <b>fetch to /api/abillio/services</b> on the server side using <b>await</b>.<br />Advantage: you can use Next.js API authentication, rate limiting, logging, etc.<br />",
+  "requestExampleServer": "Request example on the server side:",
+  "requestExampleClient": "Request example in a React component:",
+  "clientInfo": "This component does a <b>fetch to /api/abillio/services</b> <b>on the client side</b> (with <code>useEffect</code> and <code>useState</code>).<br />Advantage: useful for dynamic, interactive UI or live data.<br />"
 }
