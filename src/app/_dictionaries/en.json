@@ -18,5 +18,11 @@
   "serverFetchInfo": "This component does a <b>fetch to /api/abillio/services</b> on the server side using <b>await</b>.<br />Advantage: you can use Next.js API authentication, rate limiting, logging, etc.<br />",
   "requestExampleServer": "Request example on the server side:",
   "requestExampleClient": "Request example in a React component:",
-  "clientInfo": "This component does a <b>fetch to /api/abillio/services</b> <b>on the client side</b> (with <code>useEffect</code> and <code>useState</code>).<br />Advantage: useful for dynamic, interactive UI or live data.<br />"
+  "clientInfo": "This component does a <b>fetch to /api/abillio/services</b> <b>on the client side</b> (with <code>useEffect</code> and <code>useState</code>).<br />Advantage: useful for dynamic, interactive UI or live data.<br />",
+  "showingResults": "Showing {count} of {total} results",
+  "loading": "Loading...",
+  "noServices": "No services",
+  "errorLoadingData": "Error loading data: {error}",
+  "serverComponent": "Server component",
+  "serverComponentAlert": "This is a server component (not 'use client'), so it can only be used in server pages or wrapper components."
 }

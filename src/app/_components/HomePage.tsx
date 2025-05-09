@@ -171,7 +171,9 @@ export default function HomePage({ lang }: { lang: 'en' | 'lv' }) {
               ''
             ) : (
               <div className="mt-2 text-xs text-gray-500">
-                Showing {services.length} of {pagination ? pagination.count : '-'} results
+                {dict.showingResults
+                  .replace('{count}', String(services.length))
+                  .replace('{total}', pagination ? String(pagination.count) : '-')}
               </div>
             )}
           </div>
@@ -179,16 +181,18 @@ export default function HomePage({ lang }: { lang: 'en' | 'lv' }) {
             <code>
               {' '}
               {loading
-                ? 'Loading...'
+                ? dict.loading
                 : services
                   ? JSON.stringify(services, null, 2)
-                  : 'No services'}
+                  : dict.noServices}
             </code>
           </pre> */}
           {!loading && services && <JsonViewer data={services} />}
         </div>
 
-        {error && <div className="text-red-500 mt-2">Kļūda ielādējot datus: {error}</div>}
+        {error && (
+          <div className="text-red-500 mt-2">{dict.errorLoadingData.replace('{error}', error)}</div>
+        )}
       </main>
     </div>
   );

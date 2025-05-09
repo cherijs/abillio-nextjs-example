@@ -38,7 +38,7 @@ export default async function HomePageServerFetch({ lang }: { lang: 'en' | 'lv' 
         <HomePageHeader dict={dict} otherLang={otherLang} lang={lang} activePage="server-fetch" />
 
         <div className="flex flex-col gap-4">
-          <Badge variant="destructive">Servera komponents</Badge>
+          <Badge variant="destructive">{dict.serverComponent}</Badge>
           <h2 className="text-lg font-bold mb-2 ">{dict.serverSideFetch}</h2>
           <div className="flex flex-col gap-2">
             <p
@@ -60,21 +60,20 @@ const pagination = data.pagination;
 
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Servera komponents</AlertTitle>
-              <AlertDescription>
-                Šis ir servera komponents nav &quot;use client&quot;, tāpēc to var izmantot tikai
-                servera lapās vai wrapper komponentos.
-              </AlertDescription>
+              <AlertTitle>{dict.serverComponent}</AlertTitle>
+              <AlertDescription>{dict.serverComponentAlert}</AlertDescription>
             </Alert>
           </div>
         </div>
         <div className="w-full max-w-2xl mt-8">
           <h2 className="text-lg font-bold mb-2 ">{dict.abillioServices}</h2>
           <div className="mt-2 text-xs text-gray-500">
-            Showing {services.length} of {pagination?.count ?? '-'} results
+            {dict.showingResults
+              .replace('{count}', String(services.length))
+              .replace('{total}', pagination?.count ? String(pagination.count) : '-')}
           </div>
           {/* <pre className="max-h-[400px] overflow-y-auto">{JSON.stringify(services, null, 2)}</pre> */}
-          {services ? <JsonViewer data={services} /> : 'Loading...'}
+          {services ? <JsonViewer data={services} /> : dict.loading}
         </div>
       </main>
     </div>

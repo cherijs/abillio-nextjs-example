@@ -18,5 +18,11 @@
   "serverFetchInfo": "Šis komponents veic <b>fetch uz /api/abillio/services</b> servera pusē, izmantojot <b>await</b>.<br />Priekšrocība: vari izmantot Next.js API autentifikāciju, rate limiting, logging u.c.<br />",
   "requestExampleServer": "Pieprasījuma piemērs servera pusē:",
   "requestExampleClient": "Pieprasījuma piemērs React komponentā:",
-  "clientInfo": "Šis komponents veic <b>fetch uz /api/abillio/services</b> <b>no klienta puses</b> (ar <code>useEffect</code> un <code>useState</code>).<br />Priekšrocība: noderīgs, ja vajag dinamisku, interaktīvu UI vai live datus.<br />"
+  "clientInfo": "Šis komponents veic <b>fetch uz /api/abillio/services</b> <b>no klienta puses</b> (ar <code>useEffect</code> un <code>useState</code>).<br />Priekšrocība: noderīgs, ja vajag dinamisku, interaktīvu UI vai live datus.<br />",
+  "showingResults": "Rāda {count} no {total} rezultātiem",
+  "loading": "Ielādē...",
+  "noServices": "Nav pakalpojumu",
+  "errorLoadingData": "Kļūda ielādējot datus: {error}",
+  "serverComponent": "Servera komponents",
+  "serverComponentAlert": "Šis ir servera komponents (nav 'use client'), tāpēc to var izmantot tikai servera lapās vai wrapper komponentos."
 }

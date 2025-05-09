@@ -7,9 +7,11 @@
 import { getDictionary } from '../_dictionaries';
 import { abillioApiRequest } from '@/lib/abillio';
 import HomePageHeader from './Header';
-import dynamic from 'next/dynamic';
+
 import { JsonViewer } from '@/components/ui/json-tree-viewer';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 type AbillioPagination = {
   page?: number;
@@ -39,7 +41,7 @@ export default async function HomePageDirectAbillio({ lang }: { lang: 'en' | 'lv
 
         {/* Info block for usage and description */}
         <div className="flex flex-col gap-4">
-          <Badge variant="destructive">Servera komponents</Badge>
+          <Badge variant="destructive">{dict.serverComponent}</Badge>
           <h2 className="text-lg font-bold mb-2 ">{dict.directAbillioFetch}</h2>
           <div className="flex flex-col gap-2">
             <p
@@ -54,19 +56,22 @@ const data = await abillioApiRequest('services', {}, 'GET', { lang });
 const services = data.result;
 const pagination = data.pagination;
 `}</pre>
-            <p className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
-              !!! Šis ir <b>servera komponents</b> (nav <code>use client</code>), tāpēc to var
-              izmantot tikai servera lapās vai wrapper komponentos.
-            </p>
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>{dict.serverComponent}</AlertTitle>
+              <AlertDescription>{dict.serverComponentAlert}</AlertDescription>
+            </Alert>
           </div>
         </div>
         <div className="w-full max-w-2xl mt-8">
           <h2 className="text-lg font-bold mb-2 ">{dict.abillioServices}</h2>
           <div className="mt-2 text-xs text-gray-500">
-            Showing {services.length} of {pagination?.count ?? '-'} results
+            {dict.showingResults
+              .replace('{count}', String(services.length))
+              .replace('{total}', pagination?.count ? String(pagination.count) : '-')}
           </div>
           {/* <pre className="max-h-[400px] overflow-y-auto">{JSON.stringify(services, null, 2)}</pre> */}
-          {services ? <JsonViewer data={services} /> : 'Loading...'}
+          {services ? <JsonViewer data={services} /> : dict.loading}
         </div>
       </main>
     </div>
