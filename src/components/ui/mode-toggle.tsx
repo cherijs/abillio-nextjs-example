@@ -14,7 +14,7 @@ export const ModeToggle = ({
   const { setTheme, theme } = useTheme();
 
   return (
-    <>
+    <div className="relative">
       <Button
         variant={variant}
         size="icon"
@@ -24,7 +24,7 @@ export const ModeToggle = ({
         <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
         <span className="sr-only">Toggle theme</span>
       </Button>
-    </>
+    </div>
   );
 };
 

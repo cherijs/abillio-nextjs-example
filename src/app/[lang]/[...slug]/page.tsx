@@ -1,6 +1,6 @@
-import { abillioEndpoints } from '../_components/abillio-endpoints';
+import { abillioEndpoints } from '../../_components/abillio-endpoints';
 
-export default async function LangPage({
+export default async function LangSlugPage({
   params,
 }: {
   params: Promise<{ lang: string; slug?: string[] }>;

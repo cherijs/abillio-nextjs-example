@@ -1,46 +1,57 @@
-/**
- * Version 2: Tiešs fetch uz Abillio API no servera puses
- * Šis komponents izmanto abillioApiRequest, lai veiktu pieprasījumu tieši uz Abillio API servera pusē.
- * Priekšrocība: nav starpnieka, ātrāks, bet jāuzmanās ar sensitīviem datiem un rate limiting.
- */
-
-import { getDictionary } from '../_dictionaries';
-import HomePageHeader from './Header';
-
+import { getDictionary } from '../../../_dictionaries';
+import HomePageHeader from '../../../_components/Header';
 import { JsonViewer } from '@/components/ui/json-tree-viewer';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 
-type AbillioPagination = {
-  page?: number;
-  num_pages?: number;
-  previous_page?: number | null;
-  next_page?: number | null;
-  count?: number;
-};
+interface AbillioService {
+  id: number;
+  plan_id: number;
+  supported_countries: string[];
+  name: string;
+  dont_support: string | null;
+  services: {
+    id: number;
+    name: string;
+    vat: number | null;
+    supports_royalties: boolean;
+  }[];
+}
 
-type AbillioServiceResponse = {
-  result: unknown[];
+interface AbillioPagination {
+  num_pages: number;
+  count: number;
+  page: number;
+  next_page: number | null;
+  previous_page: number | null;
+  per_page: number;
+}
+
+interface AbillioApiResponse {
+  result: AbillioService[];
   pagination?: AbillioPagination;
-};
+}
 
-export default async function HomePageDirectAbillio({ lang }: { lang: 'en' | 'lv' }) {
+export default async function ServerDirectUsagePage({
+  params,
+}: {
+  params: Promise<{ lang: 'en' | 'lv' }>;
+}) {
+  const { lang } = await params;
   const dict = getDictionary(lang);
   const { abillioApiRequest } = await import('@/lib/server/abillio');
-  const data = await abillioApiRequest<AbillioServiceResponse>('services', {}, 'GET', {
+  const data = (await abillioApiRequest('services', {}, 'GET', {
     lang,
     country: 'LV',
-  });
+  })) as AbillioApiResponse;
   const services = data.result;
   const pagination = data.pagination ?? null;
 
   return (
-    <div className="px-8 py-20 font-[family-name:var(--font-geist-sans)] flex flex-col items-center">
+    <div className="font-[family-name:var(--font-geist-sans)] flex flex-col items-center">
       <main className="flex flex-col gap-[32px] items-center sm:items-start w-full max-w-2xl flex-grow">
-        <HomePageHeader dict={dict} lang={lang} activePage="direct-abillio" />
-
-        {/* Info block for usage and description */}
+        <HomePageHeader dict={dict} />
         <div className="flex flex-col gap-4">
           <Badge variant="destructive">{dict.serverComponent}</Badge>
           <Alert variant="destructive">
@@ -52,7 +63,6 @@ export default async function HomePageDirectAbillio({ lang }: { lang: 'en' | 'lv
             <p dangerouslySetInnerHTML={{ __html: dict.directAbillioInfo }} />
             <p dangerouslySetInnerHTML={{ __html: dict.directAbillioCaveats }} />
             <p>{dict.requestExampleServer}</p>
-
             <pre>{`import { abillioApiRequest } from '@/lib/abillio';
 const data = await abillioApiRequest('services', {}, 'GET', { lang });
 const services = data.result;

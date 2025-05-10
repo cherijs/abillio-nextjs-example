@@ -1,19 +1,5 @@
 'use client';
 
-import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useCallback } from 'react';
-
 export type HomePageHeaderDict = {
   getStarted: string;
   envExample: string;
@@ -30,67 +16,9 @@ export type HomePageHeaderDict = {
   directAbillioFetchDesc: string;
 };
 
-const NAV_OPTIONS = [
-  {
-    value: 'client',
-    getHref: (lang: string) => `/${lang}`,
-    getLabel: (dict: HomePageHeaderDict) => dict.clientSideFetch,
-    getDesc: (dict: HomePageHeaderDict) => dict.clientSideFetchDesc,
-  },
-  {
-    value: 'server-fetch',
-    getHref: (lang: string) => `/${lang}/server-fetch`,
-    getLabel: (dict: HomePageHeaderDict) => dict.serverSideFetch,
-    getDesc: (dict: HomePageHeaderDict) => dict.serverSideFetchDesc,
-  },
-  {
-    value: 'direct-abillio',
-    getHref: (lang: string) => `/${lang}/direct-abillio`,
-    getLabel: (dict: HomePageHeaderDict) => dict.directAbillioFetch,
-    getDesc: (dict: HomePageHeaderDict) => dict.directAbillioFetchDesc,
-  },
-];
-
-export function HomeLink({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  // Pieņemam, ka valoda vienmēr ir pirmais segments
-  const lang = pathname.split('/')[1] || 'en';
-  return <Link href={`/${lang}`}>{children}</Link>;
-}
-
-export default function HomePageHeader({
-  dict,
-  lang,
-  activePage,
-}: {
-  dict: HomePageHeaderDict;
-  lang: string;
-  activePage: 'client' | 'server-fetch' | 'direct-abillio';
-}) {
-  const router = useRouter();
-
-  const handleChange = useCallback(
-    (value: string) => {
-      const nav = NAV_OPTIONS.find((n) => n.value === value);
-      if (nav) {
-        router.push(nav.getHref(lang));
-      }
-    },
-    [lang, router],
-  );
-
+export default function HomePageHeader({ dict }: { dict: HomePageHeaderDict }) {
   return (
     <>
-      <HomeLink>
-        <Image
-          className="invert dark:invert-0"
-          src="https://api-staging.abill.io/docs/api/images/logo-d39433c8.svg"
-          alt="Abillio logo"
-          width={180}
-          height={38}
-          priority
-        />
-      </HomeLink>
       <ol className="list-inside list-decimal text-sm/6 text-left font-[family-name:var(--font-geist-mono)]">
         <li className="tracking-[-.01em]">{dict.register}</li>
         <li className="mb-2 tracking-[-.01em]">
@@ -114,7 +42,7 @@ export default function HomePageHeader({
           {dict.readDocs}
         </a>
       </div>
-      <div className="w-full flex items-center gap-2">
+      {/* <div className="w-full flex items-center gap-2">
         <Select value={activePage} onValueChange={handleChange}>
           <SelectTrigger className="w-[260px]">
             <SelectValue placeholder="Select view" />
@@ -131,7 +59,7 @@ export default function HomePageHeader({
             </SelectGroup>
           </SelectContent>
         </Select>
-      </div>
+      </div> */}
     </>
   );
 }

@@ -1,25 +1,16 @@
-/**
- * Version 1: Server-side fetch uz savu Next.js API (proxy uz Abillio)
- * Šis komponents veic fetch uz /api/abillio/services servera pusē, izmantojot await.
- * Priekšrocība: vari izmantot Next.js API autentifikāciju, rate limiting u.c.
- */
-
-import { AlertCircle } from 'lucide-react';
-import { getDictionary } from '../_dictionaries';
-import HomePageHeader from './Header';
+import { getDictionary } from '../../../_dictionaries';
+import HomePageHeader from '../../../_components/Header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { JsonViewer } from '@/components/ui/json-tree-viewer';
 
-type AbillioPagination = {
-  page?: number;
-  num_pages?: number;
-  previous_page?: number | null;
-  next_page?: number | null;
-  count?: number;
-};
-
-export default async function HomePageServerFetch({ lang }: { lang: 'en' | 'lv' }) {
+export default async function ServerProxyUsagePage({
+  params,
+}: {
+  params: Promise<{ lang: 'en' | 'lv' }>;
+}) {
+  const { lang } = await params;
   const dict = getDictionary(lang);
   const baseUrl =
     process.env.NEXT_PUBLIC_BASE_URL ||
@@ -29,14 +20,13 @@ export default async function HomePageServerFetch({ lang }: { lang: 'en' | 'lv' 
     cache: 'no-store',
   });
   const data = await res.json();
-  const services = data.result as unknown[];
-  const pagination = data.pagination as AbillioPagination | null;
+  const services = data.result;
+  const pagination = data.pagination;
 
   return (
-    <div className="px-8 py-20 font-[family-name:var(--font-geist-sans)] flex flex-col items-center">
+    <div className="font-[family-name:var(--font-geist-sans)] flex flex-col items-center">
       <main className="flex flex-col gap-[32px] items-center sm:items-start w-full max-w-2xl flex-grow">
-        <HomePageHeader dict={dict} lang={lang} activePage="server-fetch" />
-
+        <HomePageHeader dict={dict} />
         <div className="flex flex-col gap-4">
           <Badge variant="destructive">{dict.serverComponent}</Badge>
           <Alert variant="destructive">
@@ -66,7 +56,6 @@ const pagination = data.pagination;
               .replace('{count}', String(services.length))
               .replace('{total}', pagination?.count ? String(pagination.count) : '-')}
           </div>
-          {/* <pre className="max-h-[400px] overflow-y-auto">{JSON.stringify(services, null, 2)}</pre> */}
           {services ? (
             <JsonViewer data={services} className="rounded-md p-4 my-4 border" />
           ) : (
