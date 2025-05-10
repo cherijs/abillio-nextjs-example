@@ -7,7 +7,7 @@ import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 
 export const ModeToggle = ({
-  variant = 'outline',
+  variant = 'ghost',
 }: {
   variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
 }) => {

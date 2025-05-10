@@ -32,28 +32,22 @@ export default async function HomePageServerFetch({ lang }: { lang: 'en' | 'lv' 
   const services = data.result as unknown[];
   const pagination = data.pagination as AbillioPagination | null;
 
-  const otherLang = lang === 'en' ? 'lv' : 'en';
-
   return (
     <div className="px-8 py-20 font-[family-name:var(--font-geist-sans)] flex flex-col items-center">
       <main className="flex flex-col gap-[32px] items-center sm:items-start w-full max-w-2xl flex-grow">
-        <HomePageHeader dict={dict} otherLang={otherLang} lang={lang} activePage="server-fetch" />
+        <HomePageHeader dict={dict} lang={lang} activePage="server-fetch" />
 
         <div className="flex flex-col gap-4">
           <Badge variant="destructive">{dict.serverComponent}</Badge>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{dict.serverComponentAlert}</AlertDescription>
+          </Alert>
           <h2 className="text-lg font-bold mb-2 ">{dict.serverSideFetch}</h2>
-          <div className="flex flex-col gap-2">
-            <p
-              className="text-sm/6 font-[family-name:var(--font-geist-mono)]"
-              dangerouslySetInnerHTML={{ __html: dict.serverFetchInfo }}
-            />
-            <p
-              className="text-sm/6 font-[family-name:var(--font-geist-mono)]"
-              dangerouslySetInnerHTML={{ __html: dict.serverFetchCaveats }}
-            />
-            <p className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
-              {dict.requestExampleServer}
-            </p>
+          <div className="flex flex-col gap-4 text-sm/6 font-[family-name:var(--font-geist-mono)]">
+            <p dangerouslySetInnerHTML={{ __html: dict.serverFetchInfo }} />
+            <p dangerouslySetInnerHTML={{ __html: dict.serverFetchCaveats }} />
+            <p>{dict.requestExampleServer}</p>
             <pre>{`const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 const res = await fetch(
   \`${baseUrl}/api/abillio/services?lang=${lang}\`,
@@ -63,15 +57,9 @@ const data = await res.json();
 const services = data.result;
 const pagination = data.pagination;
 `}</pre>
-
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>{dict.serverComponent}</AlertTitle>
-              <AlertDescription>{dict.serverComponentAlert}</AlertDescription>
-            </Alert>
           </div>
         </div>
-        <div className="w-full max-w-2xl mt-8">
+        <div className="w-full">
           <h2 className="text-lg font-bold mb-2 ">{dict.abillioServices}</h2>
           <div className="mt-2 text-xs text-gray-500">
             {dict.showingResults

@@ -3,6 +3,8 @@ import { ThemeProvider } from '@/components/theme-provider';
 
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
+import ModeToggle from '@/components/ui/mode-toggle';
+import { LanguageSwitcher } from './_components/LanguageSwitcher';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -33,6 +35,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <div className="absolute top-2 right-2 z-10 flex gap-2">
+            <LanguageSwitcher />
+            <ModeToggle />
+          </div>
           {children}
         </ThemeProvider>
       </body>
