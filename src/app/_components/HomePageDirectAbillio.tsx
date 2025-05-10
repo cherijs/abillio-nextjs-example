@@ -5,12 +5,11 @@
  */
 
 import { getDictionary } from '../_dictionaries';
-import { abillioApiRequest } from '@/lib/abillio';
 import HomePageHeader from './Header';
 
 import { JsonViewer } from '@/components/ui/json-tree-viewer';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 
 type AbillioPagination = {
@@ -28,6 +27,7 @@ type AbillioServiceResponse = {
 
 export default async function HomePageDirectAbillio({ lang }: { lang: 'en' | 'lv' }) {
   const dict = getDictionary(lang);
+  const { abillioApiRequest } = await import('@/lib/server/abillio');
   const data = await abillioApiRequest<AbillioServiceResponse>('services', {}, 'GET', {
     lang,
     country: 'LV',

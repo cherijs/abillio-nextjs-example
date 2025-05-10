@@ -18,6 +18,9 @@ export async function abillioApiRequest<T = unknown, P = Record<string, unknown>
   method: 'GET' | 'POST' = 'GET',
   params: Record<string, unknown> = {},
 ): Promise<T> {
+  if (typeof window !== 'undefined') {
+    throw new Error('abillioApiRequest can only be used on the server side');
+  }
   // !!! Newer call this method in client side (frontend)
   // !!! you will expose your api-key and secret-key
 

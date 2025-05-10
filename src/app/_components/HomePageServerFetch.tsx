@@ -7,7 +7,7 @@
 import { AlertCircle } from 'lucide-react';
 import { getDictionary } from '../_dictionaries';
 import HomePageHeader from './Header';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { JsonViewer } from '@/components/ui/json-tree-viewer';
 

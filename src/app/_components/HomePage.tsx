@@ -64,12 +64,10 @@ export default function HomePage({ lang }: { lang: 'en' | 'lv' }) {
     getServices(page);
   }, [lang, page, getServices]);
 
-  const otherLang = lang === 'en' ? 'lv' : 'en';
-
   return (
     <div className="px-8 py-20 font-[family-name:var(--font-geist-sans)] flex flex-col items-center">
       <main className="flex flex-col gap-[32px] items-center sm:items-start w-full max-w-2xl flex-grow">
-        <HomePageHeader dict={dict} otherLang={otherLang} lang={lang} activePage="client" />
+        <HomePageHeader dict={dict} lang={lang} activePage="client" />
 
         {/* Info block for usage and description */}
         <div className="flex flex-col gap-4">

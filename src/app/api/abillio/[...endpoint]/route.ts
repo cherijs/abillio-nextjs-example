@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { abillioApiRequest } from '@/lib/abillio';
+import { abillioApiRequest } from '@/lib/server/abillio';
 
 export async function GET(req: NextRequest, context: { params: Promise<{ endpoint: string[] }> }) {
   const { endpoint } = await context.params;
