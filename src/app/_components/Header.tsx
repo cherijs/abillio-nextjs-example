@@ -114,7 +114,7 @@ export default function HomePageHeader({
           {dict.readDocs}
         </a>
       </div>
-      <div className="w-full sm:w-auto mt-4 sm:mt-0 flex items-center gap-2">
+      <div className="w-full flex items-center gap-2">
         <Select value={activePage} onValueChange={handleChange}>
           <SelectTrigger className="w-[260px]">
             <SelectValue placeholder="Select view" />
