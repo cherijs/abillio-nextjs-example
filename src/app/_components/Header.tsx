@@ -42,24 +42,6 @@ export default function HomePageHeader({ dict }: { dict: HomePageHeaderDict }) {
           {dict.readDocs}
         </a>
       </div>
-      {/* <div className="w-full flex items-center gap-2">
-        <Select value={activePage} onValueChange={handleChange}>
-          <SelectTrigger className="w-[260px]">
-            <SelectValue placeholder="Select view" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel>Demo get services</SelectLabel>
-              {NAV_OPTIONS.map((nav) => (
-                <SelectItem key={nav.value} value={nav.value}>
-                  <span className="font-semibold">{nav.getLabel(dict)}</span>
-                  <span className="block text-xs text-gray-500">{nav.getDesc(dict)}</span>
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div> */}
     </>
   );
 }

@@ -23,9 +23,9 @@ export default async function LangSlugPage({
         <span className="font-mono bg-muted px-2 py-1 rounded">
           /{lang}/{activeEndpoint?.path}
         </span>
-        <div className="mt-4">
+        {/* <div className="mt-4">
           Šeit nākotnē tiks attēlots {activeEndpoint?.label} demonstrācijas saturs.
-        </div>
+        </div> */}
       </div>
     </>
   );
