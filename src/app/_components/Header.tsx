@@ -20,7 +20,7 @@ export type HomePageHeaderDict = {
   envExample: string;
   setVars: string;
   envLocal: string;
-  save: string;
+  register: string;
   switchLang: string;
   readDocs: string;
   clientSideFetch: string;
