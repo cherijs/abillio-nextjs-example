@@ -44,7 +44,7 @@
 }
 
 pre {
-  @apply my-4 p-4 rounded-md text-sm border bg-background shadow-xs dark:bg-input/30 dark:border-input font-[family-name:var(--font-geist-mono)];
+  @apply max-w-[calc(100vw-4rem)] overflow-auto my-4 p-4 rounded-md text-sm border bg-background shadow-xs dark:bg-input/30 dark:border-input font-[family-name:var(--font-geist-mono)];
 }
 
 pre code {

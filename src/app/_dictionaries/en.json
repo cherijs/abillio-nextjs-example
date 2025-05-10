@@ -3,7 +3,7 @@
   "envExample": ".env.example",
   "envLocal": ".env.local",
   "setVars": "and setting the correct values for the variables.",
-  "save": "Save and see your changes instantly.",
+  "register": "Register in pro-staging.abill.io, create your API key and secret.",
   "deploy": "Deploy now",
   "readDocs": "Read our docs",
   "abillioServices": "Abillio Services",

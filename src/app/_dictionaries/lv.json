@@ -3,7 +3,7 @@
   "envExample": ".env.example",
   "envLocal": ".env.local",
   "setVars": "un iestati pareizās vērtības mainīgajiem.",
-  "save": "Saglabā un uzreiz redzi izmaiņas.",
+  "register": "Reģistrēties pro-staging.abill.io, izveidojiet savu API atslēgu.",
   "deploy": "Izvietot tagad",
   "readDocs": "Lasīt dokumentāciju",
   "abillioServices": "Abillio pakalpojumi",
