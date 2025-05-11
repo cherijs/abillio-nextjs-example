@@ -10,6 +10,7 @@ export const abillioEndpoints: AbillioEndpoint[] = [
       { path: 'usage/client', label: 'Client-side' },
       { path: 'usage/server-proxy', label: 'Server proxy' },
       { path: 'usage/server-direct', label: 'Server direct' },
+      { path: 'usage/error-handling', label: 'Error Handling' },
     ],
   },
   {
