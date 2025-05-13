@@ -128,3 +128,7 @@ pre code {
     @apply bg-background text-foreground;
   }
 }
+
+.rdp-vhidden {
+  @apply hidden;
+}
