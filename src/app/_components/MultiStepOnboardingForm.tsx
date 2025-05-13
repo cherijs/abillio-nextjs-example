@@ -267,6 +267,85 @@ const filterCurrencies = (
   option.label.toLowerCase().includes(query.toLowerCase()) ||
   option.value.toLowerCase().includes(query.toLowerCase());
 
+// Helper funkcija, kas atgriež tikai atbilstošos bank_account laukus pēc kind
+function filterBankAccountByKind(payment: PaymentFormData): Record<string, unknown> {
+  const { kind, currency } = payment;
+  if (kind === 'sepa') {
+    return {
+      kind,
+      currency,
+      name: payment.name,
+      bank_name: payment.bank_name,
+      iban: payment.iban,
+    };
+  }
+  if (kind === 'swift') {
+    return {
+      kind,
+      currency,
+      name: payment.name,
+      bank_name: payment.bank_name,
+      bic_swift: payment.bic_swift,
+      account_number: payment.account_number,
+      ach: payment.ach,
+      wire_routing_number: payment.wire_routing_number,
+      branch_name: payment.branch_name,
+      bank_address: payment.bank_address,
+    };
+  }
+  if (kind === 'card') {
+    return {
+      kind,
+      currency,
+      card_number: payment.card_number,
+      name_on_card: payment.name_on_card,
+    };
+  }
+  if (kind === 'paypal') {
+    return {
+      kind,
+      currency,
+      paypal_email: payment.paypal_email,
+    };
+  }
+  return { kind, currency };
+}
+
+function generatePayload(formData: OnboardingFormData) {
+  if (!formData.personal || !formData.address || !formData.payment) return null;
+  const p = formData.personal;
+  const a = formData.address;
+  const pay = formData.payment;
+  // Apvieno adresi vienā stringā
+  const address = [a.street, a.address2, a.city, a.postcode, a.country].filter(Boolean).join(', ');
+  // birth_date uz yyyy-MM-dd
+  const birth_date = p.birth_date ? format(new Date(p.birth_date), 'yyyy-MM-dd') : undefined;
+  // Bank account tikai ar atbilstošiem laukiem
+  const bank_account = filterBankAccountByKind(pay);
+  Object.keys(bank_account).forEach((k) => {
+    if (bank_account[k] === undefined || bank_account[k] === '') delete bank_account[k];
+  });
+  // Galvenais payload
+  const payload: Record<string, unknown> = {
+    email: p.email,
+    first_name: p.first_name,
+    last_name: p.last_name,
+    language: p.language,
+    gender: p.gender,
+    country: p.country,
+    birth_date,
+    personal_code: p.personal_code,
+    tax_number: p.tax_number,
+    phone: p.phone,
+    address,
+    bank_account,
+  };
+  Object.keys(payload).forEach((k) => {
+    if (payload[k] === undefined || payload[k] === '') delete payload[k];
+  });
+  return payload;
+}
+
 export default function MultiStepOnboardingForm({ language }: { language: string }) {
   const [activeStep, setActiveStep] = useState(0); // 0: personal, 1: address, 2: payment, 3: proceed
   const [stepStatus, setStepStatus] = useState<{ [key: string]: 'done' | 'pending' }>({
@@ -543,9 +622,36 @@ export default function MultiStepOnboardingForm({ language }: { language: string
               <Form {...personalForm}>
                 <form
                   onSubmit={personalForm.handleSubmit(handlePersonalSubmit)}
-                  className="space-y-4"
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4"
                 >
-                  <input type="hidden" {...personalForm.register('language')} value={language} />
+                  <FormField
+                    name="language"
+                    control={personalForm.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Language</FormLabel>
+                        <FormControl>
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select language" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="lv">Latviešu</SelectItem>
+                              <SelectItem value="en">English</SelectItem>
+                              <SelectItem value="de">Deutsch</SelectItem>
+                              <SelectItem value="ru">Русский</SelectItem>
+                              <SelectItem value="pl">Polski</SelectItem>
+                              <SelectItem value="ro">Română</SelectItem>
+                              <SelectItem value="bg">Български</SelectItem>
+                              <SelectItem value="sr">Srpski</SelectItem>
+                              <SelectItem value="et">Eesti</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     name="email"
                     control={personalForm.control}
@@ -593,7 +699,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         <FormLabel>Gender</FormLabel>
                         <FormControl>
                           <Select value={field.value} onValueChange={field.onChange}>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Select gender" />
                             </SelectTrigger>
                             <SelectContent>
@@ -656,7 +762,6 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     name="personal_code"
                     control={personalForm.control}
@@ -743,7 +848,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full">
+                  <Button type="submit" className="col-span-full w-full">
                     Continue
                   </Button>
                 </form>
@@ -772,13 +877,13 @@ export default function MultiStepOnboardingForm({ language }: { language: string
               <Form {...addressForm}>
                 <form
                   onSubmit={addressForm.handleSubmit(handleAddressSubmit)}
-                  className="space-y-4"
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4"
                 >
                   <FormField
                     name="country"
                     control={addressForm.control}
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
                         <FormLabel>Country</FormLabel>
                         <FormControl>
                           <AsyncSelect
@@ -825,7 +930,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                     name="street"
                     control={addressForm.control}
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
                         <FormLabel>Street Address</FormLabel>
                         <FormControl>
                           <Input {...field} />
@@ -838,7 +943,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                     name="address2"
                     control={addressForm.control}
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
                         <FormLabel>Apartment / Suite (optional)</FormLabel>
                         <FormControl>
                           <Input {...field} />
@@ -851,7 +956,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                     name="city"
                     control={addressForm.control}
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
                         <FormLabel>City</FormLabel>
                         <FormControl>
                           <Input {...field} />
@@ -864,7 +969,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                     name="postcode"
                     control={addressForm.control}
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
                         <FormLabel>Postcode</FormLabel>
                         <FormControl>
                           <Input {...field} />
@@ -873,7 +978,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full">
+                  <Button type="submit" className="col-span-1 md:col-span-2 lg:col-span-3 w-full">
                     Continue
                   </Button>
                 </form>
@@ -902,17 +1007,17 @@ export default function MultiStepOnboardingForm({ language }: { language: string
               <Form {...paymentForm}>
                 <form
                   onSubmit={paymentForm.handleSubmit(handlePaymentSubmit)}
-                  className="space-y-4"
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4"
                 >
                   <FormField
                     name="kind"
                     control={paymentForm.control}
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
                         <FormLabel>Account Type</FormLabel>
                         <FormControl>
                           <Select value={field.value} onValueChange={field.onChange}>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Select account type" />
                             </SelectTrigger>
                             <SelectContent>
@@ -931,7 +1036,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                     name="currency"
                     control={paymentForm.control}
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
                         <FormLabel>Currency</FormLabel>
                         <FormControl>
                           <AsyncSelect
@@ -980,7 +1085,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="iban"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
                             <FormLabel>IBAN</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -997,7 +1102,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="bank_name"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
                             <FormLabel>Bank Name</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1010,7 +1115,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="bic_swift"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
                             <FormLabel>BIC/SWIFT</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1023,7 +1128,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="account_number"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
                             <FormLabel>Account Number</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1036,7 +1141,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="ach"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
                             <FormLabel>ACH</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1049,7 +1154,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="wire_routing_number"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
                             <FormLabel>Wire Routing Number</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1062,7 +1167,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="branch_name"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
                             <FormLabel>Branch Name</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1075,7 +1180,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="bank_address"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
                             <FormLabel>Bank Address</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1092,7 +1197,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="card_number"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
                             <FormLabel>Card Number</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1105,7 +1210,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="name_on_card"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
                             <FormLabel>Name on Card</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1122,7 +1227,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="paypal_email"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
                             <FormLabel>PayPal Email</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1133,7 +1238,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                       />
                     </>
                   )}
-                  <Button type="submit" className="w-full">
+                  <Button type="submit" className="col-span-1 md:col-span-2 lg:col-span-3 w-full">
                     Continue
                   </Button>
                 </form>
@@ -1161,6 +1266,10 @@ export default function MultiStepOnboardingForm({ language }: { language: string
             <Button className="w-full" onClick={handleProceed}>
               Proceed to Verification
             </Button>
+            {/* Parādi payload preview */}
+            <pre className="mt-4 bg-muted rounded p-4 text-xs overflow-x-auto">
+              {JSON.stringify(generatePayload(formData), null, 2)}
+            </pre>
           </CardContent>
         ) : null}
       </Card>
