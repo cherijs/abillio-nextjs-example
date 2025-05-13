@@ -16,21 +16,21 @@ import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { CheckCircle } from 'lucide-react';
 import { AsyncSelect } from '@/components/ui/async-select';
+import { PhoneInput } from '@/components/ui/phone-input';
 
 // Zod schemas for each step
 const personalSchema = z.object({
@@ -61,13 +61,6 @@ const paymentSchema = z.object({
   bank_name: z.string().min(1),
   iban: z.string().min(1),
 });
-
-const steps = [
-  { key: 'personal', label: 'Personal Info' },
-  { key: 'address', label: 'Address' },
-  { key: 'payment', label: 'Payment' },
-  { key: 'proceed', label: 'Proceed' },
-];
 
 const LOCAL_STORAGE_KEY = 'onboardingFormData';
 
@@ -110,13 +103,15 @@ interface OnboardingFormData {
 }
 
 function saveToLocalStorage(data: OnboardingFormData) {
-  // Convert birth_date to ISO string for storage
+  // Convert birth_date to 'yyyy-MM-dd' string for storage
   const safeData = {
     ...data,
     personal: data.personal
       ? {
           ...data.personal,
-          birth_date: data.personal.birth_date ? data.personal.birth_date.toISOString() : undefined,
+          birth_date: data.personal.birth_date
+            ? format(new Date(data.personal.birth_date), 'yyyy-MM-dd')
+            : undefined,
         }
       : undefined,
   };
@@ -184,8 +179,27 @@ const filterCountries = (option: { value: string; label: string; flag?: string }
   option.label.toLowerCase().includes(query.toLowerCase()) ||
   option.value.toLowerCase().includes(query.toLowerCase());
 
+// Update fetchCurrencies to use id for value/label
+async function fetchCurrencies(lang: string) {
+  const res = await fetch(`/api/abillio/currencies?is_payment_currency&lang=${lang}`);
+  const data = await res.json();
+  // Map API result to { value, label, symbol }
+  return data.result.map((c: { id: string; symbol: string }) => ({
+    value: c.id,
+    label: c.id,
+    symbol: c.symbol,
+  }));
+}
+
+const filterCurrencies = (
+  option: { value: string; label: string; symbol?: string },
+  query: string,
+) =>
+  option.label.toLowerCase().includes(query.toLowerCase()) ||
+  option.value.toLowerCase().includes(query.toLowerCase());
+
 export default function MultiStepOnboardingForm({ language }: { language: string }) {
-  const [activeTab, setActiveTab] = useState('personal');
+  const [activeStep, setActiveStep] = useState(0); // 0: personal, 1: address, 2: payment, 3: proceed
   const [stepStatus, setStepStatus] = useState<{ [key: string]: 'done' | 'pending' }>({
     personal: 'pending',
     address: 'pending',
@@ -193,7 +207,6 @@ export default function MultiStepOnboardingForm({ language }: { language: string
     proceed: 'pending',
   });
   const [formData, setFormData] = useState<OnboardingFormData>({});
-  // Add open state for birth_date calendar popover
   const [birthDateOpen, setBirthDateOpen] = useState(false);
 
   // Load from localStorage on mount
@@ -254,532 +267,714 @@ export default function MultiStepOnboardingForm({ language }: { language: string
     mode: 'onTouched',
   });
 
-  // Handlers for each step
+  // Step submit handlers
   function handlePersonalSubmit(values: PersonalFormData) {
     const newData = { ...formData, personal: values };
     setFormData(newData);
     saveToLocalStorage(newData);
     setStepStatus((prev) => ({ ...prev, personal: 'done' }));
-    setActiveTab('address');
+    setActiveStep(1);
   }
   function handleAddressSubmit(values: AddressFormData) {
     const newData = { ...formData, address: values };
     setFormData(newData);
     saveToLocalStorage(newData);
     setStepStatus((prev) => ({ ...prev, address: 'done' }));
-    setActiveTab('payment');
+    setActiveStep(2);
   }
   function handlePaymentSubmit(values: PaymentFormData) {
     const newData = { ...formData, payment: values };
     setFormData(newData);
     saveToLocalStorage(newData);
     setStepStatus((prev) => ({ ...prev, payment: 'done' }));
-    setActiveTab('proceed');
+    setActiveStep(3);
   }
   function handleProceed() {
-    // Here you would trigger verification or final submit
     setStepStatus((prev) => ({ ...prev, proceed: 'done' }));
     alert('Proceeding to verification!');
   }
 
-  return (
-    <div className="max-w-md mx-auto mt-8">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 mb-4">
-          {steps.map((step) => (
-            <TabsTrigger key={step.key} value={step.key}>
-              {step.label}
-              {stepStatus[step.key] === 'done' && (
-                <CheckCircle className="inline text-green-500 w-4 h-4" />
+  // Helper for summary rendering
+  function renderPersonalSummary() {
+    const p = formData.personal;
+    if (!p) return null;
+    return (
+      <>
+        <div className="grid grid-cols-2 gap-x-8 gap-y-4 py-4">
+          <div>
+            <div className="text-muted-foreground text-sm">First Name</div>
+            <div className="font-semibold text-lg">
+              {p.first_name || <span className="text-muted-foreground">—</span>}
+            </div>
+          </div>
+          <div>
+            <div className="text-muted-foreground text-sm">Last Name</div>
+            <div className="font-semibold text-lg">
+              {p.last_name || <span className="text-muted-foreground">—</span>}
+            </div>
+          </div>
+          <div>
+            <div className="text-muted-foreground text-sm">Date of birth</div>
+            <div className="font-semibold text-lg">
+              {p.birth_date ? (
+                format(new Date(p.birth_date), 'yyyy-MM-dd')
+              ) : (
+                <span className="text-muted-foreground">—</span>
               )}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        <TabsContent value="personal">
-          {/* Step 1: Personal Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Step 1: Personal Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FormProvider {...personalForm}>
-                <Form {...personalForm}>
-                  <form
-                    onSubmit={personalForm.handleSubmit(handlePersonalSubmit)}
-                    className="space-y-4"
-                  >
-                    <input type="hidden" {...personalForm.register('language')} value={language} />
-                    <FormField
-                      name="email"
-                      control={personalForm.control}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input type="email" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      name="first_name"
-                      control={personalForm.control}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>First Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      name="last_name"
-                      control={personalForm.control}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Last Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      name="gender"
-                      control={personalForm.control}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Gender</FormLabel>
-                          <FormControl>
-                            <RadioGroup
-                              value={field.value}
-                              onValueChange={field.onChange}
-                              className="flex flex-col gap-2"
-                            >
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="male" id="gender-male" />
-                                <label htmlFor="gender-male" className="text-sm">
-                                  Male
-                                </label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="female" id="gender-female" />
-                                <label htmlFor="gender-female" className="text-sm">
-                                  Female
-                                </label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="other" id="gender-other" />
-                                <label htmlFor="gender-other" className="text-sm">
-                                  Other
-                                </label>
-                              </div>
-                            </RadioGroup>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      name="birth_date"
-                      control={personalForm.control}
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Date of Birth</FormLabel>
-                          <Popover open={birthDateOpen} onOpenChange={setBirthDateOpen}>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant="outline"
-                                  className={cn(
-                                    'w-full justify-start text-left font-normal',
-                                    !field.value && 'text-muted-foreground',
-                                  )}
-                                >
-                                  {field.value ? (
-                                    format(field.value, 'PPP')
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                captionLayout="dropdown-buttons"
-                                selected={field.value ?? undefined}
-                                onSelect={(date) => {
-                                  field.onChange(date);
-                                  setBirthDateOpen(false);
-                                }}
-                                disabled={(date) =>
-                                  date > new Date() || date < new Date('1900-01-01')
-                                }
-                                initialFocus
-                                fromYear={1900}
-                                toYear={new Date().getFullYear()}
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      name="country"
-                      control={personalForm.control}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Country</FormLabel>
-                          <FormControl>
-                            <AsyncSelect
-                              fetcher={() => fetchCountries(language)}
-                              preload
-                              filterFn={filterCountries}
-                              label="Country"
-                              value={field.value}
-                              onChange={field.onChange}
-                              getOptionValue={(option: {
-                                value: string;
-                                label: string;
-                                flag?: string;
-                              }) => option.value}
-                              getDisplayValue={(option: {
-                                value: string;
-                                label: string;
-                                flag?: string;
-                              }) => (
-                                <span>
-                                  {option.flag ? `${option.flag} ` : ''}
-                                  {option.label}
-                                </span>
-                              )}
-                              renderOption={(option: {
-                                value: string;
-                                label: string;
-                                flag?: string;
-                              }) => (
-                                <span>
-                                  {option.flag ? `${option.flag} ` : ''}
-                                  {option.label}
-                                </span>
-                              )}
-                              placeholder="Select country..."
-                              width="100%"
+            </div>
+          </div>
+          <div>
+            <div className="text-muted-foreground text-sm">Tax Residency Country</div>
+            <div className="font-semibold text-lg">
+              {p.country || <span className="text-muted-foreground">—</span>}
+            </div>
+          </div>
+          <div className="col-span-2">
+            <div className="text-muted-foreground text-sm">
+              National ID Number / Social Security Number
+            </div>
+            <div className="font-semibold text-lg">
+              {p.personal_code || <span className="text-muted-foreground">—</span>}
+            </div>
+          </div>
+          <div className="col-span-2">
+            <div className="text-muted-foreground text-sm">TAX ID number</div>
+            <div className="font-semibold text-lg">
+              {p.tax_number || <span className="text-muted-foreground">—</span>}
+            </div>
+          </div>
+        </div>
+        <div className="pt-2">
+          <button
+            type="button"
+            className="underline text-sm font-medium"
+            onClick={() => setActiveStep(0)}
+          >
+            Edit
+          </button>
+        </div>
+      </>
+    );
+  }
+  function renderAddressSummary() {
+    const a = formData.address;
+    if (!a) return null;
+    return (
+      <>
+        <div className="grid grid-cols-2 gap-x-8 gap-y-4 py-4">
+          <div>
+            <div className="text-muted-foreground text-sm">Country</div>
+            <div className="font-semibold text-lg">
+              {a.country || <span className="text-muted-foreground">—</span>}
+            </div>
+          </div>
+          <div>
+            <div className="text-muted-foreground text-sm">Street</div>
+            <div className="font-semibold text-lg">
+              {a.street || <span className="text-muted-foreground">—</span>}
+            </div>
+          </div>
+          <div>
+            <div className="text-muted-foreground text-sm">City</div>
+            <div className="font-semibold text-lg">
+              {a.city || <span className="text-muted-foreground">—</span>}
+            </div>
+          </div>
+          <div>
+            <div className="text-muted-foreground text-sm">Postcode</div>
+            <div className="font-semibold text-lg">
+              {a.postcode || <span className="text-muted-foreground">—</span>}
+            </div>
+          </div>
+          <div className="col-span-2">
+            <div className="text-muted-foreground text-sm">Address 2</div>
+            <div className="font-semibold text-lg">
+              {a.address2 || <span className="text-muted-foreground">—</span>}
+            </div>
+          </div>
+        </div>
+        <div className="pt-2">
+          <button
+            type="button"
+            className="underline text-sm font-medium"
+            onClick={() => setActiveStep(1)}
+          >
+            Edit
+          </button>
+        </div>
+      </>
+    );
+  }
+  function renderPaymentSummary() {
+    const p = formData.payment;
+    if (!p) return null;
+    return (
+      <>
+        <div className="grid grid-cols-2 gap-x-8 gap-y-4 py-4">
+          <div>
+            <div className="text-muted-foreground text-sm">Kind</div>
+            <div className="font-semibold text-lg">
+              {p.kind || <span className="text-muted-foreground">—</span>}
+            </div>
+          </div>
+          <div>
+            <div className="text-muted-foreground text-sm">Currency</div>
+            <div className="font-semibold text-lg">
+              {p.currency || <span className="text-muted-foreground">—</span>}
+            </div>
+          </div>
+          <div>
+            <div className="text-muted-foreground text-sm">Name</div>
+            <div className="font-semibold text-lg">
+              {p.name || <span className="text-muted-foreground">—</span>}
+            </div>
+          </div>
+          <div>
+            <div className="text-muted-foreground text-sm">Bank Name</div>
+            <div className="font-semibold text-lg">
+              {p.bank_name || <span className="text-muted-foreground">—</span>}
+            </div>
+          </div>
+          <div className="col-span-2">
+            <div className="text-muted-foreground text-sm">IBAN</div>
+            <div className="font-semibold text-lg">
+              {p.iban || <span className="text-muted-foreground">—</span>}
+            </div>
+          </div>
+        </div>
+        <div className="pt-2">
+          <button
+            type="button"
+            className="underline text-sm font-medium"
+            onClick={() => setActiveStep(2)}
+          >
+            Edit
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <div className="w-full mt-8 space-y-6">
+      {/* Step 1: Personal Info */}
+      <Card className={activeStep === 0 ? '' : 'bg-muted/50'}>
+        <div
+          className={cn('flex items-top justify-between px-6', activeStep === 0 && 'pb-4 border-b')}
+        >
+          <div>
+            <div className="text-muted-foreground">Step 1</div>
+            <div className="font-bold">Personal Information</div>
+          </div>
+          {stepStatus.personal === 'done' && <CheckCircle className="text-green-500" />}
+        </div>
+        {activeStep === 0 ? (
+          <CardContent>
+            <FormProvider {...personalForm}>
+              <Form {...personalForm}>
+                <form
+                  onSubmit={personalForm.handleSubmit(handlePersonalSubmit)}
+                  className="space-y-4"
+                >
+                  <input type="hidden" {...personalForm.register('language')} value={language} />
+                  <FormField
+                    name="email"
+                    control={personalForm.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    name="first_name"
+                    control={personalForm.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>First Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    name="last_name"
+                    control={personalForm.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Last Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    name="gender"
+                    control={personalForm.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Gender</FormLabel>
+                        <FormControl>
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select gender" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectGroup>
+                                <SelectItem value="male">Male</SelectItem>
+                                <SelectItem value="female">Female</SelectItem>
+                                <SelectItem value="other">Other</SelectItem>
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    name="birth_date"
+                    control={personalForm.control}
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Date of Birth</FormLabel>
+                        <Popover open={birthDateOpen} onOpenChange={setBirthDateOpen}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  'w-full justify-start text-left font-normal',
+                                  !field.value && 'text-muted-foreground',
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, 'PPP')
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              captionLayout="dropdown-buttons"
+                              selected={field.value ?? undefined}
+                              onSelect={(date) => {
+                                field.onChange(date);
+                                setBirthDateOpen(false);
+                              }}
+                              disabled={(date) =>
+                                date > new Date() || date < new Date('1900-01-01')
+                              }
+                              initialFocus
+                              fromYear={1900}
+                              toYear={new Date().getFullYear()}
                             />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      name="personal_code"
-                      control={personalForm.control}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Personal Code</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      name="tax_number"
-                      control={personalForm.control}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Tax Number (optional)</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      name="phone"
-                      control={personalForm.control}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Phone (optional)</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" className="w-full">
-                      Continue
-                    </Button>
-                  </form>
-                </Form>
-              </FormProvider>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="address">
-          {/* Step 2: Address */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Step 2: Address</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FormProvider {...addressForm}>
-                <Form {...addressForm}>
-                  <form
-                    onSubmit={addressForm.handleSubmit(handleAddressSubmit)}
-                    className="space-y-4"
-                  >
-                    <FormField
-                      name="country"
-                      control={addressForm.control}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Country</FormLabel>
-                          <FormControl>
-                            <AsyncSelect
-                              fetcher={() => fetchCountries(language)}
-                              preload
-                              filterFn={filterCountries}
-                              label="Country"
-                              value={field.value}
-                              onChange={field.onChange}
-                              getOptionValue={(option: {
-                                value: string;
-                                label: string;
-                                flag?: string;
-                              }) => option.value}
-                              getDisplayValue={(option: {
-                                value: string;
-                                label: string;
-                                flag?: string;
-                              }) => (
-                                <span>
-                                  {option.flag ? `${option.flag} ` : ''}
-                                  {option.label}
-                                </span>
-                              )}
-                              renderOption={(option: {
-                                value: string;
-                                label: string;
-                                flag?: string;
-                              }) => (
-                                <span>
-                                  {option.flag ? `${option.flag} ` : ''}
-                                  {option.label}
-                                </span>
-                              )}
-                              placeholder="Select country..."
-                              width="100%"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      name="street"
-                      control={addressForm.control}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Street Address</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      name="address2"
-                      control={addressForm.control}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Apartment / Suite (optional)</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      name="city"
-                      control={addressForm.control}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>City</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      name="postcode"
-                      control={addressForm.control}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Postcode</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" className="w-full">
-                      Continue
-                    </Button>
-                  </form>
-                </Form>
-              </FormProvider>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="payment">
-          {/* Step 3: Payment */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Step 3: Payment Method</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FormProvider {...paymentForm}>
-                <Form {...paymentForm}>
-                  <form
-                    onSubmit={paymentForm.handleSubmit(handlePaymentSubmit)}
-                    className="space-y-4"
-                  >
-                    <FormField
-                      name="kind"
-                      control={paymentForm.control}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Account Type</FormLabel>
-                          <FormControl>
-                            <Select value={field.value} onValueChange={field.onChange}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="sepa">Bank Account Europe (SEPA)</SelectItem>
-                                <SelectItem value="swift">
-                                  Bank Account International (SWIFT)
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      name="currency"
-                      control={paymentForm.control}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Currency</FormLabel>
-                          <FormControl>
-                            <Select value={field.value} onValueChange={field.onChange}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select currency" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="EUR">EUR €</SelectItem>
-                                <SelectItem value="USD">USD $</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      name="name"
-                      control={paymentForm.control}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Account Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      name="bank_name"
-                      control={paymentForm.control}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Bank Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      name="iban"
-                      control={paymentForm.control}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>IBAN</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" className="w-full">
-                      Continue
-                    </Button>
-                  </form>
-                </Form>
-              </FormProvider>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="proceed">
-          {/* Step 4: Proceed to Verification */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Step 4: Proceed to Verification</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4">
-                <div className="font-semibold mb-2">Personal Info</div>
-                <pre className="bg-gray-100 rounded p-2 text-xs overflow-x-auto">
-                  {JSON.stringify(formData.personal, null, 2)}
-                </pre>
-                <div className="font-semibold mb-2 mt-4">Address</div>
-                <pre className="bg-gray-100 rounded p-2 text-xs overflow-x-auto">
-                  {JSON.stringify(formData.address, null, 2)}
-                </pre>
-                <div className="font-semibold mb-2 mt-4">Payment</div>
-                <pre className="bg-gray-100 rounded p-2 text-xs overflow-x-auto">
-                  {JSON.stringify(formData.payment, null, 2)}
-                </pre>
-              </div>
-              <Button className="w-full" onClick={handleProceed}>
-                Proceed to Verification
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    name="personal_code"
+                    control={personalForm.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Personal Code</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    name="country"
+                    control={personalForm.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tax Residency Country</FormLabel>
+                        <FormControl>
+                          <AsyncSelect
+                            fetcher={() => fetchCountries(language)}
+                            preload
+                            filterFn={filterCountries}
+                            label="Country"
+                            value={field.value}
+                            onChange={field.onChange}
+                            getOptionValue={(option: {
+                              value: string;
+                              label: string;
+                              flag?: string;
+                            }) => option.value}
+                            getDisplayValue={(option: {
+                              value: string;
+                              label: string;
+                              flag?: string;
+                            }) => (
+                              <span>
+                                {option.flag ? `${option.flag} ` : ''}
+                                {option.label}
+                              </span>
+                            )}
+                            renderOption={(option: {
+                              value: string;
+                              label: string;
+                              flag?: string;
+                            }) => (
+                              <span>
+                                {option.flag ? `${option.flag} ` : ''}
+                                {option.label}
+                              </span>
+                            )}
+                            placeholder="Select country..."
+                            width="100%"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    name="tax_number"
+                    control={personalForm.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tax Number (optional)</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    name="phone"
+                    control={personalForm.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone (optional)</FormLabel>
+                        <FormControl>
+                          <PhoneInput value={field.value} onChange={field.onChange} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full">
+                    Continue
+                  </Button>
+                </form>
+              </Form>
+            </FormProvider>
+          </CardContent>
+        ) : (
+          <CardContent>{renderPersonalSummary()}</CardContent>
+        )}
+      </Card>
+
+      {/* Step 2: Address */}
+      <Card className={activeStep === 1 ? '' : 'bg-muted/50'}>
+        <div
+          className={cn('flex items-top justify-between px-6', activeStep === 1 && 'pb-4 border-b')}
+        >
+          <div>
+            <div className="text-muted-foreground">Step 2</div>
+            <div className="font-bold">Address</div>
+          </div>
+          {stepStatus.address === 'done' && <CheckCircle className="text-green-500" />}
+        </div>
+        {activeStep === 1 ? (
+          <CardContent>
+            <FormProvider {...addressForm}>
+              <Form {...addressForm}>
+                <form
+                  onSubmit={addressForm.handleSubmit(handleAddressSubmit)}
+                  className="space-y-4"
+                >
+                  <FormField
+                    name="country"
+                    control={addressForm.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Country</FormLabel>
+                        <FormControl>
+                          <AsyncSelect
+                            fetcher={() => fetchCountries(language)}
+                            preload
+                            filterFn={filterCountries}
+                            label="Country"
+                            value={field.value}
+                            onChange={field.onChange}
+                            getOptionValue={(option: {
+                              value: string;
+                              label: string;
+                              flag?: string;
+                            }) => option.value}
+                            getDisplayValue={(option: {
+                              value: string;
+                              label: string;
+                              flag?: string;
+                            }) => (
+                              <span>
+                                {option.flag ? `${option.flag} ` : ''}
+                                {option.label}
+                              </span>
+                            )}
+                            renderOption={(option: {
+                              value: string;
+                              label: string;
+                              flag?: string;
+                            }) => (
+                              <span>
+                                {option.flag ? `${option.flag} ` : ''}
+                                {option.label}
+                              </span>
+                            )}
+                            placeholder="Select country..."
+                            width="100%"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    name="street"
+                    control={addressForm.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Street Address</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    name="address2"
+                    control={addressForm.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Apartment / Suite (optional)</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    name="city"
+                    control={addressForm.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    name="postcode"
+                    control={addressForm.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Postcode</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full">
+                    Continue
+                  </Button>
+                </form>
+              </Form>
+            </FormProvider>
+          </CardContent>
+        ) : (
+          stepStatus.personal === 'done' && <CardContent>{renderAddressSummary()}</CardContent>
+        )}
+      </Card>
+
+      {/* Step 3: Payment */}
+      <Card className={activeStep === 2 ? '' : 'bg-muted/50'}>
+        <div
+          className={cn('flex items-top justify-between px-6', activeStep === 2 && 'pb-4 border-b')}
+        >
+          <div>
+            <div className="text-muted-foreground">Step 3</div>
+            <div className="font-bold">Payment method</div>
+          </div>
+          {stepStatus.payment === 'done' && <CheckCircle className="text-green-500" />}
+        </div>
+        {activeStep === 2 ? (
+          <CardContent>
+            <FormProvider {...paymentForm}>
+              <Form {...paymentForm}>
+                <form
+                  onSubmit={paymentForm.handleSubmit(handlePaymentSubmit)}
+                  className="space-y-4"
+                >
+                  <FormField
+                    name="kind"
+                    control={paymentForm.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Account Type</FormLabel>
+                        <FormControl>
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="sepa">Bank Account Europe (SEPA)</SelectItem>
+                              <SelectItem value="swift">
+                                Bank Account International (SWIFT)
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    name="currency"
+                    control={paymentForm.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Currency</FormLabel>
+                        <FormControl>
+                          <AsyncSelect
+                            fetcher={() => fetchCurrencies(language)}
+                            preload
+                            filterFn={filterCurrencies}
+                            label="Currency"
+                            value={field.value}
+                            onChange={field.onChange}
+                            getOptionValue={(option: {
+                              value: string;
+                              label: string;
+                              symbol?: string;
+                            }) => option.value}
+                            getDisplayValue={(option: {
+                              value: string;
+                              label: string;
+                              symbol?: string;
+                            }) => (
+                              <span>
+                                {option.symbol ? `${option.symbol} ` : ''}
+                                {option.label}
+                              </span>
+                            )}
+                            renderOption={(option: {
+                              value: string;
+                              label: string;
+                              symbol?: string;
+                            }) => (
+                              <span>
+                                {option.symbol ? `${option.symbol} ` : ''}
+                                {option.label}
+                              </span>
+                            )}
+                            placeholder="Select currency..."
+                            width="100%"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    name="name"
+                    control={paymentForm.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Account Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    name="bank_name"
+                    control={paymentForm.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Bank Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    name="iban"
+                    control={paymentForm.control}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>IBAN</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full">
+                    Continue
+                  </Button>
+                </form>
+              </Form>
+            </FormProvider>
+          </CardContent>
+        ) : (
+          stepStatus.address === 'done' && <CardContent>{renderPaymentSummary()}</CardContent>
+        )}
+      </Card>
+
+      {/* Step 4: Proceed */}
+      <Card className={activeStep === 3 ? '' : 'bg-muted/50'}>
+        <div
+          className={cn('flex items-top justify-between px-6', activeStep === 3 && 'pb-4 border-b')}
+        >
+          <div>
+            <div className="text-muted-foreground">Step 4</div>
+            <div className="font-bold">Proceed to Verification</div>
+          </div>
+          {stepStatus.proceed === 'done' && <CheckCircle className="text-green-500" />}
+        </div>
+        {activeStep === 3 ? (
+          <CardContent>
+            <Button className="w-full" onClick={handleProceed}>
+              Proceed to Verification
+            </Button>
+          </CardContent>
+        ) : null}
+      </Card>
     </div>
   );
 }
