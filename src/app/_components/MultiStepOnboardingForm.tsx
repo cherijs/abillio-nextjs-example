@@ -54,13 +54,73 @@ const addressSchema = z.object({
   postcode: z.string().min(1),
 });
 
-const paymentSchema = z.object({
-  kind: z.enum(['sepa', 'swift']),
-  currency: z.enum(['EUR', 'USD']),
-  name: z.string().min(1),
-  bank_name: z.string().min(1),
-  iban: z.string().min(1),
-});
+const paymentSchema = z
+  .object({
+    kind: z.enum(['sepa', 'swift', 'card', 'paypal']),
+    currency: z.string().min(1),
+    name: z.string().optional(),
+    iban: z.string().optional(),
+    bank_name: z.string().optional(),
+    bic_swift: z.string().optional(),
+    account_number: z.string().optional(),
+    ach: z.string().optional(),
+    wire_routing_number: z.string().optional(),
+    branch_name: z.string().optional(),
+    bank_address: z.string().optional(),
+    card_number: z.string().optional(),
+    name_on_card: z.string().optional(),
+    paypal_email: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.kind === 'sepa' && !data.iban) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'IBAN is required for SEPA accounts',
+        path: ['iban'],
+      });
+    }
+    if (data.kind === 'swift') {
+      if (!data.bank_name)
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Bank name is required for SWIFT accounts',
+          path: ['bank_name'],
+        });
+      if (!data.bic_swift)
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'BIC/SWIFT is required for SWIFT accounts',
+          path: ['bic_swift'],
+        });
+      if (!data.account_number)
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Account number is required for SWIFT accounts',
+          path: ['account_number'],
+        });
+    }
+    if (data.kind === 'card') {
+      if (!data.card_number)
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Card number is required for card accounts',
+          path: ['card_number'],
+        });
+      if (!data.name_on_card)
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Name on card is required for card accounts',
+          path: ['name_on_card'],
+        });
+    }
+    if (data.kind === 'paypal' && !data.paypal_email) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'PayPal email is required for PayPal accounts',
+        path: ['paypal_email'],
+      });
+    }
+  });
 
 const LOCAL_STORAGE_KEY = 'onboardingFormData';
 
@@ -90,11 +150,20 @@ interface AddressFormData {
   postcode: string;
 }
 interface PaymentFormData {
-  kind: 'sepa' | 'swift';
-  currency: 'EUR' | 'USD';
-  name: string;
-  bank_name: string;
-  iban: string;
+  kind: 'sepa' | 'swift' | 'card' | 'paypal';
+  currency: string;
+  name?: string;
+  iban?: string;
+  bank_name?: string;
+  bic_swift?: string;
+  account_number?: string;
+  ach?: string;
+  wire_routing_number?: string;
+  branch_name?: string;
+  bank_address?: string;
+  card_number?: string;
+  name_on_card?: string;
+  paypal_email?: string;
 }
 interface OnboardingFormData {
   personal?: PersonalFormData;
@@ -844,13 +913,13 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         <FormControl>
                           <Select value={field.value} onValueChange={field.onChange}>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select type" />
+                              <SelectValue placeholder="Select account type" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="sepa">Bank Account Europe (SEPA)</SelectItem>
-                              <SelectItem value="swift">
-                                Bank Account International (SWIFT)
-                              </SelectItem>
+                              <SelectItem value="sepa">SEPA</SelectItem>
+                              <SelectItem value="swift">SWIFT</SelectItem>
+                              <SelectItem value="card">Card</SelectItem>
+                              <SelectItem value="paypal">PayPal</SelectItem>
                             </SelectContent>
                           </Select>
                         </FormControl>
@@ -905,45 +974,165 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    name="name"
-                    control={paymentForm.control}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Account Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    name="bank_name"
-                    control={paymentForm.control}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Bank Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    name="iban"
-                    control={paymentForm.control}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>IBAN</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {paymentForm.watch('kind') === 'sepa' && (
+                    <>
+                      <FormField
+                        name="iban"
+                        control={paymentForm.control}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>IBAN</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
+                  {paymentForm.watch('kind') === 'swift' && (
+                    <>
+                      <FormField
+                        name="bank_name"
+                        control={paymentForm.control}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Bank Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        name="bic_swift"
+                        control={paymentForm.control}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>BIC/SWIFT</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        name="account_number"
+                        control={paymentForm.control}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Account Number</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        name="ach"
+                        control={paymentForm.control}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>ACH</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        name="wire_routing_number"
+                        control={paymentForm.control}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Wire Routing Number</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        name="branch_name"
+                        control={paymentForm.control}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Branch Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        name="bank_address"
+                        control={paymentForm.control}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Bank Address</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
+                  {paymentForm.watch('kind') === 'card' && (
+                    <>
+                      <FormField
+                        name="card_number"
+                        control={paymentForm.control}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Card Number</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        name="name_on_card"
+                        control={paymentForm.control}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Name on Card</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
+                  {paymentForm.watch('kind') === 'paypal' && (
+                    <>
+                      <FormField
+                        name="paypal_email"
+                        control={paymentForm.control}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>PayPal Email</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
                   <Button type="submit" className="w-full">
                     Continue
                   </Button>
