@@ -760,51 +760,191 @@ export default function MultiStepOnboardingForm({ language }: { language: string
   function renderPaymentSummary() {
     const p = formData.payment;
     if (!p) return null;
-    return (
-      <>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 py-4">
-          <div>
-            <div className="text-muted-foreground text-sm">Kind</div>
-            <div className="font-semibold text-lg">
-              {p.kind || <span className="text-muted-foreground">—</span>}
+    if (p.kind === 'sepa') {
+      return (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 py-4">
+            <div>
+              <div className="text-muted-foreground text-sm">Kind</div>
+              <div className="font-semibold text-lg">{p.kind}</div>
+            </div>
+            <div>
+              <div className="text-muted-foreground text-sm">Currency</div>
+              <div className="font-semibold text-lg">{p.currency}</div>
+            </div>
+            <div>
+              <div className="text-muted-foreground text-sm">Name</div>
+              <div className="font-semibold text-lg">
+                {p.name || <span className="text-muted-foreground">—</span>}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground text-sm">Bank Name</div>
+              <div className="font-semibold text-lg">
+                {p.bank_name || <span className="text-muted-foreground">—</span>}
+              </div>
+            </div>
+            <div className="col-span-2">
+              <div className="text-muted-foreground text-sm">IBAN</div>
+              <div className="font-semibold text-lg">
+                {p.iban || <span className="text-muted-foreground">—</span>}
+              </div>
             </div>
           </div>
-          <div>
-            <div className="text-muted-foreground text-sm">Currency</div>
-            <div className="font-semibold text-lg">
-              {p.currency || <span className="text-muted-foreground">—</span>}
+          <div className="pt-2">
+            <button
+              type="button"
+              className="underline text-sm font-medium"
+              onClick={() => setActiveStep(2)}
+            >
+              Edit
+            </button>
+          </div>
+        </>
+      );
+    }
+    if (p.kind === 'swift') {
+      return (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 py-4">
+            <div>
+              <div className="text-muted-foreground text-sm">Kind</div>
+              <div className="font-semibold text-lg">{p.kind}</div>
+            </div>
+            <div>
+              <div className="text-muted-foreground text-sm">Currency</div>
+              <div className="font-semibold text-lg">{p.currency}</div>
+            </div>
+            <div>
+              <div className="text-muted-foreground text-sm">Name</div>
+              <div className="font-semibold text-lg">
+                {p.name || <span className="text-muted-foreground">—</span>}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground text-sm">Bank Name</div>
+              <div className="font-semibold text-lg">
+                {p.bank_name || <span className="text-muted-foreground">—</span>}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground text-sm">BIC/SWIFT</div>
+              <div className="font-semibold text-lg">
+                {p.bic_swift || <span className="text-muted-foreground">—</span>}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground text-sm">Account Number</div>
+              <div className="font-semibold text-lg">
+                {p.account_number || <span className="text-muted-foreground">—</span>}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground text-sm">ACH</div>
+              <div className="font-semibold text-lg">
+                {p.ach || <span className="text-muted-foreground">—</span>}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground text-sm">Wire Routing Number</div>
+              <div className="font-semibold text-lg">
+                {p.wire_routing_number || <span className="text-muted-foreground">—</span>}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground text-sm">Branch Name</div>
+              <div className="font-semibold text-lg">
+                {p.branch_name || <span className="text-muted-foreground">—</span>}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground text-sm">Bank Address</div>
+              <div className="font-semibold text-lg">
+                {p.bank_address || <span className="text-muted-foreground">—</span>}
+              </div>
             </div>
           </div>
-          <div>
-            <div className="text-muted-foreground text-sm">Name</div>
-            <div className="font-semibold text-lg">
-              {p.name || <span className="text-muted-foreground">—</span>}
+          <div className="pt-2">
+            <button
+              type="button"
+              className="underline text-sm font-medium"
+              onClick={() => setActiveStep(2)}
+            >
+              Edit
+            </button>
+          </div>
+        </>
+      );
+    }
+    if (p.kind === 'card') {
+      return (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 py-4">
+            <div>
+              <div className="text-muted-foreground text-sm">Kind</div>
+              <div className="font-semibold text-lg">{p.kind}</div>
+            </div>
+            <div>
+              <div className="text-muted-foreground text-sm">Currency</div>
+              <div className="font-semibold text-lg">{p.currency}</div>
+            </div>
+            <div>
+              <div className="text-muted-foreground text-sm">Card Number</div>
+              <div className="font-semibold text-lg">
+                {p.card_number || <span className="text-muted-foreground">—</span>}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground text-sm">Name on Card</div>
+              <div className="font-semibold text-lg">
+                {p.name_on_card || <span className="text-muted-foreground">—</span>}
+              </div>
             </div>
           </div>
-          <div>
-            <div className="text-muted-foreground text-sm">Bank Name</div>
-            <div className="font-semibold text-lg">
-              {p.bank_name || <span className="text-muted-foreground">—</span>}
+          <div className="pt-2">
+            <button
+              type="button"
+              className="underline text-sm font-medium"
+              onClick={() => setActiveStep(2)}
+            >
+              Edit
+            </button>
+          </div>
+        </>
+      );
+    }
+    if (p.kind === 'paypal') {
+      return (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 py-4">
+            <div>
+              <div className="text-muted-foreground text-sm">Kind</div>
+              <div className="font-semibold text-lg">{p.kind}</div>
+            </div>
+            <div>
+              <div className="text-muted-foreground text-sm">Currency</div>
+              <div className="font-semibold text-lg">{p.currency}</div>
+            </div>
+            <div className="col-span-2">
+              <div className="text-muted-foreground text-sm">PayPal Email</div>
+              <div className="font-semibold text-lg">
+                {p.paypal_email || <span className="text-muted-foreground">—</span>}
+              </div>
             </div>
           </div>
-          <div className="col-span-2">
-            <div className="text-muted-foreground text-sm">IBAN</div>
-            <div className="font-semibold text-lg">
-              {p.iban || <span className="text-muted-foreground">—</span>}
-            </div>
+          <div className="pt-2">
+            <button
+              type="button"
+              className="underline text-sm font-medium"
+              onClick={() => setActiveStep(2)}
+            >
+              Edit
+            </button>
           </div>
-        </div>
-        <div className="pt-2">
-          <button
-            type="button"
-            className="underline text-sm font-medium"
-            onClick={() => setActiveStep(2)}
-          >
-            Edit
-          </button>
-        </div>
-      </>
-    );
+        </>
+      );
+    }
+    return null;
   }
 
   return (
