@@ -509,7 +509,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
         ...formData.payment,
       });
     }
-  }, [formData]);
+  });
 
   // Step 1: Personal Info
   const personalForm = useForm<PersonalFormData>({
