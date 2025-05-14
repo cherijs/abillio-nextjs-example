@@ -37,7 +37,6 @@ import { Info } from 'lucide-react';
 import { JsonViewer } from '@/components/ui/json-tree-viewer';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 // Zod schemas for each step
 const personalSchema = z.object({
   language: z.string(),
@@ -482,8 +481,8 @@ export default function MultiStepOnboardingForm({ language }: { language: string
   const [formData, setFormData] = useState<OnboardingFormData>({});
   const [birthDateOpen, setBirthDateOpen] = useState(false);
   const [freelancer, setFreelancer] = useState<FreelancerResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // const [loading, setLoading] = useState(false);
+  // const [error, setError] = useState<string | null>(null);
   const [inviteFreelancer, setInviteFreelancer] = useState<FreelancerResult | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
@@ -625,8 +624,8 @@ export default function MultiStepOnboardingForm({ language }: { language: string
     handleKyc();
   }
   async function handleKyc() {
-    setLoading(true);
-    setError(null);
+    // setLoading(true);
+    // setError(null);
     setInviteFreelancer(null);
     setInviteError(null);
     try {
@@ -663,12 +662,12 @@ export default function MultiStepOnboardingForm({ language }: { language: string
       }
     } catch (e: unknown) {
       if (e instanceof Error) {
-        setError(e.message || 'API error');
+        // setError(e.message || 'API error');
       } else {
-        setError('API error');
+        // setError('API error');
       }
     } finally {
-      setLoading(false);
+      // setLoading(false);
     }
   }
 
