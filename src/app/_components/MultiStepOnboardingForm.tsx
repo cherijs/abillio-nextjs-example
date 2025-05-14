@@ -31,9 +31,12 @@ import { format } from 'date-fns';
 import { CheckCircle } from 'lucide-react';
 import { AsyncSelect } from '@/components/ui/async-select';
 import { PhoneInput } from '@/components/ui/phone-input';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Info } from 'lucide-react';
+import { JsonViewer } from '@/components/ui/json-tree-viewer';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 // Zod schemas for each step
 const personalSchema = z.object({
   language: z.string(),
@@ -348,16 +351,74 @@ function generatePayload(formData: OnboardingFormData) {
   return payload;
 }
 
+// Helper to get/set abillioFreelancers map in localStorage
+function getFreelancerIdMap() {
+  if (typeof window === 'undefined') return {};
+  try {
+    return JSON.parse(localStorage.getItem('abillioFreelancers') || '{}');
+  } catch {
+    return {};
+  }
+}
+function setFreelancerIdForEmail(email: string, data: object) {
+  const map = getFreelancerIdMap();
+  map[email] = data;
+  localStorage.setItem('abillioFreelancers', JSON.stringify(map));
+}
+function removeFreelancerIdForEmail(email: string) {
+  const map = getFreelancerIdMap();
+  if (map[email]) {
+    delete map[email];
+    localStorage.setItem('abillioFreelancers', JSON.stringify(map));
+  }
+}
+
+function getFreelancerDataByEmail(email: string): object | undefined {
+  const map = getFreelancerIdMap();
+  return map[email];
+}
+
+// Helper to fetch freelancer by ID
+async function getFreelancer(id: string, lang: string): Promise<any> {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/abillio/freelancers/${id}?lang=${lang}`,
+    { method: 'GET' },
+  );
+  if (!res.ok) throw new Error(await res.text());
+  return await res.json();
+}
+
+// Helper to create freelancer
+async function createFreelancer(payload: object, lang: string): Promise<any> {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/abillio/freelancers?lang=${lang}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!res.ok) throw new Error(await res.text());
+  return await res.json();
+}
+
 export default function MultiStepOnboardingForm({ language }: { language: string }) {
-  const [activeStep, setActiveStep] = useState(0); // 0: personal, 1: address, 2: payment, 3: proceed
+  const [activeStep, setActiveStep] = useState(0); // 0: personal, 1: address, 2: payment, 3: proceed, 4: result
   const [stepStatus, setStepStatus] = useState<{ [key: string]: 'done' | 'pending' }>({
     personal: 'pending',
     address: 'pending',
     payment: 'pending',
     proceed: 'pending',
+    result: 'pending',
   });
   const [formData, setFormData] = useState<OnboardingFormData>({});
   const [birthDateOpen, setBirthDateOpen] = useState(false);
+  const [freelancer, setFreelancer] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [inviteFreelancer, setInviteFreelancer] = useState<any>(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -423,6 +484,12 @@ export default function MultiStepOnboardingForm({ language }: { language: string
         setFormData(newData);
         saveToLocalStorage(newData);
       }
+      // Clear abillioFreelancers for current email if email changes
+      if (name === 'email') {
+        if (formData.personal?.email) {
+          removeFreelancerIdForEmail(formData.personal.email);
+        }
+      }
     });
     return () => subscription.unsubscribe();
   }, [personalForm, formData]);
@@ -463,9 +530,40 @@ export default function MultiStepOnboardingForm({ language }: { language: string
     setStepStatus((prev) => ({ ...prev, payment: 'done' }));
     setActiveStep(3);
   }
-  function handleProceed() {
-    setStepStatus((prev) => ({ ...prev, proceed: 'done' }));
-    alert('Data submitted!');
+  async function handleProceed() {
+    setLoading(true);
+    setError(null);
+    setInviteFreelancer(null);
+    setInviteError(null);
+    try {
+      const payload = generatePayload(formData);
+      if (!payload) throw new Error('Missing form data');
+      // Use createFreelancer helper
+      const data = await createFreelancer(payload, language);
+      setFreelancer(data.result);
+      // Always save freelancer data for email if present, even if error exists
+      if (data?.result?.id && formData.personal?.email) {
+        setFreelancerIdForEmail(formData.personal.email, data.result);
+      }
+      setStepStatus((prev) => ({ ...prev, proceed: 'done', result: 'done' }));
+      setActiveStep(4);
+      // If invite object present, fetch freelancer details
+      if (data?.result?.invite && data?.result?.id) {
+        setInviteLoading(true);
+        try {
+          const inviteData = await getFreelancer(data.result.id, language);
+          setInviteFreelancer(inviteData.result);
+        } catch (err: any) {
+          setInviteError(err.message || 'Failed to fetch invited freelancer');
+        } finally {
+          setInviteLoading(false);
+        }
+      }
+    } catch (e: any) {
+      setError(e.message || 'API error');
+    } finally {
+      setLoading(false);
+    }
   }
 
   // Helper for summary rendering
@@ -1493,18 +1591,81 @@ export default function MultiStepOnboardingForm({ language }: { language: string
         </div>
         {activeStep === 3 ? (
           <CardContent>
-            {/* Parādi payload preview */}
             <p>Payload preview</p>
             <pre className="mt-4 bg-muted rounded p-4 text-xs overflow-x-auto">
               {JSON.stringify(generatePayload(formData), null, 2)}
             </pre>
-
-            <Button className="w-full" onClick={handleProceed}>
-              Submit data
-            </Button>
+            {error && <div className="text-destructive my-2">{error}</div>}
+            <div className="flex flex-col md:flex-row gap-2 mt-2">
+              <Button className="w-full md:w-auto" onClick={handleProceed} disabled={loading}>
+                {loading ? 'Submitting...' : 'Submit data'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full md:w-auto"
+                onClick={() => setActiveStep(2)}
+              >
+                Edit previous steps
+              </Button>
+            </div>
           </CardContent>
         ) : null}
       </Card>
+
+      {/* Step 5: Result */}
+      {activeStep === 4 && (
+        <Card>
+          <div className="flex items-top justify-between px-6 pb-4 border-b">
+            <div>
+              <div className="text-muted-foreground">Step 5</div>
+              <div className="font-bold">Result</div>
+            </div>
+            {stepStatus.result === 'done' && <CheckCircle className="text-green-500" />}
+          </div>
+          <CardContent>
+            {freelancer ? (
+              <>
+                {freelancer.error && (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{freelancer.error}</AlertDescription>
+                  </Alert>
+                )}
+                <JsonViewer data={freelancer} className="rounded-md p-4 my-4 border" />
+                {/* Show invite freelancer details if present */}
+                {freelancer.invite && (
+                  <div className="mt-6">
+                    <div className="font-bold mb-2">Invited Freelancer Details</div>
+                    {inviteLoading ? (
+                      <div className="text-muted-foreground">Loading...</div>
+                    ) : inviteError ? (
+                      <Alert variant="destructive" className="mb-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{inviteError}</AlertDescription>
+                      </Alert>
+                    ) : inviteFreelancer ? (
+                      <JsonViewer data={inviteFreelancer} className="rounded-md p-4 my-4 border" />
+                    ) : null}
+                  </div>
+                )}
+                <div className="pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full md:w-auto"
+                    onClick={() => setActiveStep(3)}
+                  >
+                    Edit & Retry
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="text-muted-foreground">No result</div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
