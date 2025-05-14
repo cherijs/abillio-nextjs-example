@@ -23,7 +23,7 @@ type PhoneInputProps = Omit<React.ComponentProps<'input'>, 'onChange' | 'value' 
   };
 
 const PhoneInput: React.ForwardRefExoticComponent<PhoneInputProps> = React.forwardRef<
-  React.ElementRef<typeof RPNInput.default>,
+  React.ComponentRef<typeof RPNInput.default>,
   PhoneInputProps
 >(({ className, onChange, ...props }, ref) => {
   return (
@@ -90,7 +90,7 @@ const CountrySelect = ({
         >
           <FlagComponent country={selectedCountry} countryName={selectedCountry} />
           <ChevronsUpDown
-            className={cn('-mr-2 size-4 opacity-50', disabled ? 'hidden' : 'opacity-100')}
+            className={cn('-mr-2 size-4 opacity-50', disabled ? 'hidden' : 'opacity-50')}
           />
         </Button>
       </PopoverTrigger>
@@ -150,7 +150,7 @@ const FlagComponent = ({ country, countryName }: RPNInput.FlagProps) => {
   const Flag = flags[country];
 
   return (
-    <span className="flex h-4 w-6 overflow-hidden rounded-sm bg-foreground/20">
+    <span className="flex h-3 w-5 overflow-hidden ">
       {Flag && <Flag title={countryName} className="size-full" />}
     </span>
   );

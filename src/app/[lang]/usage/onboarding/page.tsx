@@ -31,42 +31,12 @@ export default async function ClientUsagePage({
   return (
     <div className="font-[family-name:var(--font-geist-sans)] flex flex-col items-center">
       <main className="flex flex-col gap-[32px] items-center sm:items-start w-full max-w-2xl flex-grow">
-        <div className="flex flex-col gap-4">
-          <h2 className="text-lg font-bold mb-2 ">Full Example</h2>
-          <div className="flex flex-col gap-2">
-            <p>
-              This is a full example of how to use the Abillio API. It includes all the steps from
-              the previous examples.
-            </p>
-          </div>
-        </div>
         <div className="w-full max-w-2xl">
           <h2 className="text-lg font-bold mb-2 ">Onboard user to your service</h2>
-          <p>
-            First, we need to onboard the user to our service. We need to get the user&apos;s data.
-          </p>
-          {/* 
-var payload = {
-  'email': 'roger.elbert@gmail.com',
-  'first_name': 'Roger',
-  'last_name': 'Elbert',
-  'language': 'en',
-  'gender': 'male',
-  'country': 'LT',
-  'birth_date': '1990-01-01',
-  'personal_code': '123456-12345',
-  'tax_number': '123456-12345', # optional
-  'phone': '+371 12345678', # optional
-  'address': 'Riga, Latvia',
-  'bank_account': {
-    'kind': 'sepa',
-    'currency': 'EUR',
-    'name': 'My Savings Account',
-    'bank_name': 'Swedbank',
-    'iban': 'LV80BANK0000435195001',
-  },
-}
- */}
+          <div className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
+            <p>First, you need to onboard the user to your service.</p>
+            <p>Get the user&apos;s data and create a new user in your service.</p>
+          </div>
           <MultiStepOnboardingForm language={lang} />
         </div>
         <div className="w-full max-w-2xl">

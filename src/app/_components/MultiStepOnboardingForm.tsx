@@ -31,7 +31,9 @@ import { format } from 'date-fns';
 import { CheckCircle } from 'lucide-react';
 import { AsyncSelect } from '@/components/ui/async-select';
 import { PhoneInput } from '@/components/ui/phone-input';
-
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { Info } from 'lucide-react';
 // Zod schemas for each step
 const personalSchema = z.object({
   language: z.string(),
@@ -365,7 +367,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
 
   // Sync form values with formData (localStorage) for all forms
   useEffect(() => {
-    if (formData.personal) {
+    if (formData.personal && formData.personal.language) {
       personalForm.reset({
         ...formData.personal,
         birth_date: formData.personal.birth_date ? new Date(formData.personal.birth_date) : null,
@@ -387,12 +389,12 @@ export default function MultiStepOnboardingForm({ language }: { language: string
   const personalForm = useForm<PersonalFormData>({
     resolver: zodResolver(personalSchema),
     defaultValues: {
-      language,
+      language: formData.personal?.language || language,
       email: formData.personal?.email || '',
       first_name: formData.personal?.first_name || '',
       last_name: formData.personal?.last_name || '',
       gender: formData.personal?.gender || 'male',
-      birth_date: formData.personal?.birth_date ? new Date(formData.personal.birth_date) : null,
+      birth_date: formData.personal?.birth_date ? new Date(formData.personal?.birth_date) : null,
       country: formData.personal?.country || '',
       personal_code: formData.personal?.personal_code || '',
       tax_number: formData.personal?.tax_number || '',
@@ -400,6 +402,30 @@ export default function MultiStepOnboardingForm({ language }: { language: string
     },
     mode: 'onTouched',
   });
+
+  // Saglabā language uzreiz, kad mainās
+  useEffect(() => {
+    const subscription = personalForm.watch((values, { name }) => {
+      if (name === 'language' && values.language) {
+        const newPersonal = {
+          ...formData.personal,
+          ...values,
+          language: values.language,
+          email: values.email || '',
+          first_name: values.first_name || '',
+          last_name: values.last_name || '',
+          gender: values.gender || 'male',
+          birth_date: values.birth_date || null,
+          country: values.country || '',
+          personal_code: values.personal_code || '',
+        };
+        const newData = { ...formData, personal: newPersonal };
+        setFormData(newData);
+        saveToLocalStorage(newData);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [personalForm, formData]);
 
   // Step 2: Address
   const addressForm = useForm<AddressFormData>({
@@ -439,16 +465,44 @@ export default function MultiStepOnboardingForm({ language }: { language: string
   }
   function handleProceed() {
     setStepStatus((prev) => ({ ...prev, proceed: 'done' }));
-    alert('Proceeding to verification!');
+    alert('Data submitted!');
   }
 
   // Helper for summary rendering
   function renderPersonalSummary() {
     const p = formData.personal;
     if (!p) return null;
+
+    // Valodu nosaukumi
+    const languageLabels: Record<string, string> = {
+      lv: 'Latviešu',
+      en: 'English',
+      de: 'Deutsch',
+      ru: 'Русский',
+      pl: 'Polski',
+      ro: 'Română',
+      bg: 'Български',
+      sr: 'Srpski',
+      et: 'Eesti',
+    };
+
     return (
       <>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-4 py-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 py-4">
+          <div>
+            <div className="text-muted-foreground text-sm">Language</div>
+            <div className="font-semibold text-lg">
+              {languageLabels[p.language] || p.language || (
+                <span className="text-muted-foreground">—</span>
+              )}
+            </div>
+          </div>
+          <div>
+            <div className="text-muted-foreground text-sm">Email</div>
+            <div className="font-semibold text-lg">
+              {p.email || <span className="text-muted-foreground">—</span>}
+            </div>
+          </div>
           <div>
             <div className="text-muted-foreground text-sm">First Name</div>
             <div className="font-semibold text-lg">
@@ -462,10 +516,20 @@ export default function MultiStepOnboardingForm({ language }: { language: string
             </div>
           </div>
           <div>
+            <div className="text-muted-foreground text-sm">Gender</div>
+            <div className="font-semibold text-lg">
+              {p.gender || <span className="text-muted-foreground">—</span>}
+            </div>
+          </div>
+          <div>
             <div className="text-muted-foreground text-sm">Date of birth</div>
             <div className="font-semibold text-lg">
               {p.birth_date ? (
-                format(new Date(p.birth_date), 'yyyy-MM-dd')
+                typeof p.birth_date === 'string' ? (
+                  p.birth_date
+                ) : (
+                  format(new Date(p.birth_date), 'yyyy-MM-dd')
+                )
               ) : (
                 <span className="text-muted-foreground">—</span>
               )}
@@ -477,7 +541,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
               {p.country || <span className="text-muted-foreground">—</span>}
             </div>
           </div>
-          <div className="col-span-2">
+          <div>
             <div className="text-muted-foreground text-sm">
               National ID Number / Social Security Number
             </div>
@@ -485,10 +549,16 @@ export default function MultiStepOnboardingForm({ language }: { language: string
               {p.personal_code || <span className="text-muted-foreground">—</span>}
             </div>
           </div>
-          <div className="col-span-2">
+          <div>
             <div className="text-muted-foreground text-sm">TAX ID number</div>
             <div className="font-semibold text-lg">
               {p.tax_number || <span className="text-muted-foreground">—</span>}
+            </div>
+          </div>
+          <div>
+            <div className="text-muted-foreground text-sm">Phone</div>
+            <div className="font-semibold text-lg">
+              {p.phone || <span className="text-muted-foreground">—</span>}
             </div>
           </div>
         </div>
@@ -509,7 +579,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
     if (!a) return null;
     return (
       <>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-4 py-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 py-4">
           <div>
             <div className="text-muted-foreground text-sm">Country</div>
             <div className="font-semibold text-lg">
@@ -558,7 +628,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
     if (!p) return null;
     return (
       <>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-4 py-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 py-4">
           <div>
             <div className="text-muted-foreground text-sm">Kind</div>
             <div className="font-semibold text-lg">
@@ -613,6 +683,11 @@ export default function MultiStepOnboardingForm({ language }: { language: string
           <div>
             <div className="text-muted-foreground">Step 1</div>
             <div className="font-bold">Personal Information</div>
+            {activeStep === 0 ? (
+              <div className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
+                For the onboarding process, we need to get the user&apos;s required data.
+              </div>
+            ) : null}
           </div>
           {stepStatus.personal === 'done' && <CheckCircle className="text-green-500" />}
         </div>
@@ -622,16 +697,37 @@ export default function MultiStepOnboardingForm({ language }: { language: string
               <Form {...personalForm}>
                 <form
                   onSubmit={personalForm.handleSubmit(handlePersonalSubmit)}
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4"
+                  className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"
                 >
                   <FormField
                     name="language"
                     control={personalForm.control}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Language</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <FormLabel>Language</FormLabel>
+                          <HoverCard>
+                            <HoverCardTrigger asChild>
+                              <button
+                                type="button"
+                                tabIndex={0}
+                                className="p-0 m-0 bg-transparent border-0 cursor-pointer"
+                              >
+                                <Info className="w-4 h-4 text-muted-foreground" aria-label="Info" />
+                              </button>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="text-sm" align="start" side="top">
+                              This is the language that will be used in communication with user in
+                              emails.
+                            </HoverCardContent>
+                          </HoverCard>
+                        </div>
                         <FormControl>
-                          <Select value={field.value} onValueChange={field.onChange}>
+                          <Select
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            key={field.value}
+                          >
                             <SelectTrigger className="w-full">
                               <SelectValue placeholder="Select language" />
                             </SelectTrigger>
@@ -657,7 +753,24 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                     control={personalForm.control}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <FormLabel>Email</FormLabel>
+                          <HoverCard>
+                            <HoverCardTrigger asChild>
+                              <button
+                                type="button"
+                                tabIndex={0}
+                                className="p-0 m-0 bg-transparent border-0 cursor-pointer"
+                              >
+                                <Info className="w-4 h-4 text-muted-foreground" aria-label="Info" />
+                              </button>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="text-sm" align="start" side="top">
+                              With this email user will be onboarded to Abillio and can login to
+                              Abillio using this email.
+                            </HoverCardContent>
+                          </HoverCard>
+                        </div>
                         <FormControl>
                           <Input type="email" {...field} />
                         </FormControl>
@@ -670,7 +783,28 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                     control={personalForm.control}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>First Name</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <FormLabel>First Name</FormLabel>
+                          <HoverCard>
+                            <HoverCardTrigger asChild>
+                              <button
+                                type="button"
+                                tabIndex={0}
+                                className="p-0 m-0 bg-transparent border-0 cursor-pointer"
+                              >
+                                <Info className="w-4 h-4 text-muted-foreground" aria-label="Info" />
+                              </button>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="text-sm" align="start" side="top">
+                              This is required for legal purposes.
+                              <br />
+                              <span className="text-destructive">
+                                After your profile is verified (KYC), this field can no longer be
+                                changed.
+                              </span>
+                            </HoverCardContent>
+                          </HoverCard>
+                        </div>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -720,7 +854,28 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                     control={personalForm.control}
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel>Date of Birth</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <FormLabel>Date of Birth</FormLabel>
+                          <HoverCard>
+                            <HoverCardTrigger asChild>
+                              <button
+                                type="button"
+                                tabIndex={0}
+                                className="p-0 m-0 bg-transparent border-0 cursor-pointer"
+                              >
+                                <Info className="w-4 h-4 text-muted-foreground" aria-label="Info" />
+                              </button>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="text-sm" align="start" side="top">
+                              This is required for legal purposes.
+                              <br />
+                              <span className="text-destructive">
+                                After your profile is verified (KYC), this field can no longer be
+                                changed.
+                              </span>
+                            </HoverCardContent>
+                          </HoverCard>
+                        </div>
                         <Popover open={birthDateOpen} onOpenChange={setBirthDateOpen}>
                           <PopoverTrigger asChild>
                             <FormControl>
@@ -767,7 +922,28 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                     control={personalForm.control}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Personal Code</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <FormLabel>Personal Code</FormLabel>
+                          <HoverCard>
+                            <HoverCardTrigger asChild>
+                              <button
+                                type="button"
+                                tabIndex={0}
+                                className="p-0 m-0 bg-transparent border-0 cursor-pointer"
+                              >
+                                <Info className="w-4 h-4 text-muted-foreground" aria-label="Info" />
+                              </button>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="text-sm" align="start" side="top">
+                              This is required for legal purposes.
+                              <br />
+                              <span className="text-destructive">
+                                After your profile is verified (KYC), this field can no longer be
+                                changed.
+                              </span>
+                            </HoverCardContent>
+                          </HoverCard>
+                        </div>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -780,7 +956,28 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                     control={personalForm.control}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tax Residency Country</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <FormLabel>Tax Residency Country</FormLabel>
+                          <HoverCard>
+                            <HoverCardTrigger asChild>
+                              <button
+                                type="button"
+                                tabIndex={0}
+                                className="p-0 m-0 bg-transparent border-0 cursor-pointer"
+                              >
+                                <Info className="w-4 h-4 text-muted-foreground" aria-label="Info" />
+                              </button>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="text-sm" align="start" side="top">
+                              Mandatory for correct tax calculation for invoices.
+                              <br />
+                              <span className="text-destructive">
+                                After your profile is verified (KYC), this field can no longer be
+                                changed.
+                              </span>
+                            </HoverCardContent>
+                          </HoverCard>
+                        </div>
                         <FormControl>
                           <AsyncSelect
                             fetcher={() => fetchCountries(language)}
@@ -798,19 +995,14 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                               value: string;
                               label: string;
                               flag?: string;
-                            }) => (
-                              <span>
-                                {option.flag ? `${option.flag} ` : ''}
-                                {option.label}
-                              </span>
-                            )}
+                            }) => <span>{option.label}</span>}
                             renderOption={(option: {
                               value: string;
                               label: string;
                               flag?: string;
                             }) => (
                               <span>
-                                {option.flag ? `${option.flag} ` : ''}
+                                {/* {option.flag ? `${option.flag} ` : ''} */}
                                 {option.label}
                               </span>
                             )}
@@ -827,7 +1019,28 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                     control={personalForm.control}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tax Number (optional)</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <FormLabel>Tax Number (optional)</FormLabel>
+                          <HoverCard>
+                            <HoverCardTrigger asChild>
+                              <button
+                                type="button"
+                                tabIndex={0}
+                                className="p-0 m-0 bg-transparent border-0 cursor-pointer"
+                              >
+                                <Info className="w-4 h-4 text-muted-foreground" aria-label="Info" />
+                              </button>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="text-sm" align="start" side="top">
+                              This is required for legal purposes.
+                              <br />
+                              <span className="text-destructive">
+                                After your profile is verified (KYC), this field can no longer be
+                                changed.
+                              </span>
+                            </HoverCardContent>
+                          </HoverCard>
+                        </div>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -868,6 +1081,11 @@ export default function MultiStepOnboardingForm({ language }: { language: string
           <div>
             <div className="text-muted-foreground">Step 2</div>
             <div className="font-bold">Address</div>
+            {activeStep === 1 ? (
+              <div className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
+                Address is required for some payment methods for example SWIFT.
+              </div>
+            ) : null}
           </div>
           {stepStatus.address === 'done' && <CheckCircle className="text-green-500" />}
         </div>
@@ -877,13 +1095,13 @@ export default function MultiStepOnboardingForm({ language }: { language: string
               <Form {...addressForm}>
                 <form
                   onSubmit={addressForm.handleSubmit(handleAddressSubmit)}
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4"
+                  className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"
                 >
                   <FormField
                     name="country"
                     control={addressForm.control}
                     render={({ field }) => (
-                      <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
+                      <FormItem className="col-span-1 ">
                         <FormLabel>Country</FormLabel>
                         <FormControl>
                           <AsyncSelect
@@ -930,7 +1148,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                     name="street"
                     control={addressForm.control}
                     render={({ field }) => (
-                      <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
+                      <FormItem className="col-span-1 ">
                         <FormLabel>Street Address</FormLabel>
                         <FormControl>
                           <Input {...field} />
@@ -943,7 +1161,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                     name="address2"
                     control={addressForm.control}
                     render={({ field }) => (
-                      <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
+                      <FormItem className="col-span-1 ">
                         <FormLabel>Apartment / Suite (optional)</FormLabel>
                         <FormControl>
                           <Input {...field} />
@@ -956,7 +1174,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                     name="city"
                     control={addressForm.control}
                     render={({ field }) => (
-                      <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
+                      <FormItem className="col-span-1 ">
                         <FormLabel>City</FormLabel>
                         <FormControl>
                           <Input {...field} />
@@ -969,7 +1187,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                     name="postcode"
                     control={addressForm.control}
                     render={({ field }) => (
-                      <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
+                      <FormItem className="col-span-1 ">
                         <FormLabel>Postcode</FormLabel>
                         <FormControl>
                           <Input {...field} />
@@ -978,7 +1196,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="col-span-1 md:col-span-2 lg:col-span-3 w-full">
+                  <Button type="submit" className="col-span-full w-full">
                     Continue
                   </Button>
                 </form>
@@ -998,6 +1216,11 @@ export default function MultiStepOnboardingForm({ language }: { language: string
           <div>
             <div className="text-muted-foreground">Step 3</div>
             <div className="font-bold">Payment method</div>
+            {activeStep === 2 ? (
+              <div className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
+                Provide the payment method you want to use. You can add more payment methods later.
+              </div>
+            ) : null}
           </div>
           {stepStatus.payment === 'done' && <CheckCircle className="text-green-500" />}
         </div>
@@ -1007,13 +1230,13 @@ export default function MultiStepOnboardingForm({ language }: { language: string
               <Form {...paymentForm}>
                 <form
                   onSubmit={paymentForm.handleSubmit(handlePaymentSubmit)}
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4"
+                  className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"
                 >
                   <FormField
                     name="kind"
                     control={paymentForm.control}
                     render={({ field }) => (
-                      <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
+                      <FormItem className="col-span-1 ">
                         <FormLabel>Account Type</FormLabel>
                         <FormControl>
                           <Select value={field.value} onValueChange={field.onChange}>
@@ -1036,7 +1259,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                     name="currency"
                     control={paymentForm.control}
                     render={({ field }) => (
-                      <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
+                      <FormItem className="col-span-1 ">
                         <FormLabel>Currency</FormLabel>
                         <FormControl>
                           <AsyncSelect
@@ -1085,7 +1308,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="iban"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
+                          <FormItem className="col-span-1 ">
                             <FormLabel>IBAN</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1102,7 +1325,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="bank_name"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
+                          <FormItem className="col-span-1 ">
                             <FormLabel>Bank Name</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1115,7 +1338,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="bic_swift"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
+                          <FormItem className="col-span-1 ">
                             <FormLabel>BIC/SWIFT</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1128,7 +1351,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="account_number"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
+                          <FormItem className="col-span-1 ">
                             <FormLabel>Account Number</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1141,7 +1364,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="ach"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
+                          <FormItem className="col-span-1 ">
                             <FormLabel>ACH</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1154,7 +1377,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="wire_routing_number"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
+                          <FormItem className="col-span-1 ">
                             <FormLabel>Wire Routing Number</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1167,7 +1390,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="branch_name"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
+                          <FormItem className="col-span-1 ">
                             <FormLabel>Branch Name</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1180,7 +1403,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="bank_address"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
+                          <FormItem className="col-span-1 ">
                             <FormLabel>Bank Address</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1197,7 +1420,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="card_number"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
+                          <FormItem className="col-span-1 ">
                             <FormLabel>Card Number</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1210,7 +1433,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="name_on_card"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
+                          <FormItem className="col-span-1 ">
                             <FormLabel>Name on Card</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1227,7 +1450,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                         name="paypal_email"
                         control={paymentForm.control}
                         render={({ field }) => (
-                          <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
+                          <FormItem className="col-span-1 ">
                             <FormLabel>PayPal Email</FormLabel>
                             <FormControl>
                               <Input {...field} />
@@ -1238,7 +1461,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                       />
                     </>
                   )}
-                  <Button type="submit" className="col-span-1 md:col-span-2 lg:col-span-3 w-full">
+                  <Button type="submit" className="col-span-full w-full">
                     Continue
                   </Button>
                 </form>
@@ -1258,18 +1481,27 @@ export default function MultiStepOnboardingForm({ language }: { language: string
           <div>
             <div className="text-muted-foreground">Step 4</div>
             <div className="font-bold">Proceed to Verification</div>
+            {activeStep === 3 ? (
+              <div className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
+                In this step we will post the data to the API and freelancer will be registered. In
+                the response you will receive a freelancer ID that you must store in your database
+                for your user and a verification script that creates Button.
+              </div>
+            ) : null}
           </div>
           {stepStatus.proceed === 'done' && <CheckCircle className="text-green-500" />}
         </div>
         {activeStep === 3 ? (
           <CardContent>
-            <Button className="w-full" onClick={handleProceed}>
-              Proceed to Verification
-            </Button>
             {/* Parādi payload preview */}
+            <p>Payload preview</p>
             <pre className="mt-4 bg-muted rounded p-4 text-xs overflow-x-auto">
               {JSON.stringify(generatePayload(formData), null, 2)}
             </pre>
+
+            <Button className="w-full" onClick={handleProceed}>
+              Submit data
+            </Button>
           </CardContent>
         ) : null}
       </Card>
