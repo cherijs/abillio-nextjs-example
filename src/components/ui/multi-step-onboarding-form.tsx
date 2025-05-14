@@ -135,6 +135,11 @@ function getCountriesCacheKey(lang: string) {
   return `abillioCountries_${lang}`;
 }
 
+// Helper to get currencies cache key per language
+function getCurrenciesCacheKey(lang: string) {
+  return `abillioCurrencies_${lang}`;
+}
+
 // Types for form data
 interface PersonalFormData {
   language: string;
@@ -231,8 +236,9 @@ async function fetchCountries(
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
+        // console.log('fetchCountries', cacheKey, parsed?.length);
         // Update in background
-        updateCountriesInBackground(lang);
+        // updateCountriesInBackground(lang);
         return parsed;
       } catch {}
     }
@@ -260,10 +266,6 @@ async function fetchAndCacheCountries(lang: string) {
   return mapped;
 }
 
-function updateCountriesInBackground(lang: string) {
-  fetchAndCacheCountries(lang);
-}
-
 // Klienta puses filtrs
 const filterCountries = (option: { value: string; label: string; flag?: string }, query: string) =>
   option.label.toLowerCase().includes(query.toLowerCase()) ||
@@ -271,14 +273,30 @@ const filterCountries = (option: { value: string; label: string; flag?: string }
 
 // Update fetchCurrencies to use id for value/label
 async function fetchCurrencies(lang: string) {
+  const cacheKey = getCurrenciesCacheKey(lang);
+  // 1. Try to load from localStorage
+  if (typeof window !== 'undefined') {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        return parsed;
+      } catch {}
+    }
+  }
+  // 2. If not cached, fetch from API and cache
   const res = await fetch(`/api/abillio/currencies?is_payment_currency&lang=${lang}`);
   const data = await res.json();
   // Map API result to { value, label, symbol }
-  return data.result.map((c: { id: string; symbol: string }) => ({
+  const mapped = data.result.map((c: { id: string; symbol: string }) => ({
     value: c.id,
     label: c.id,
     symbol: c.symbol,
   }));
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(cacheKey, JSON.stringify(mapped));
+  }
+  return mapped;
 }
 
 const filterCurrencies = (
@@ -1848,7 +1866,9 @@ export default function MultiStepOnboardingForm({ language }: { language: string
 
       {/* Step 4: Result */}
       <Card>
-        <div className={cn('flex items-top justify-between px-6', activeStep === 3 && 'pb-4 border-b')}>
+        <div
+          className={cn('flex items-top justify-between px-6', activeStep === 3 && 'pb-4 border-b')}
+        >
           <div>
             <div className="text-muted-foreground">Step 4</div>
             <div className="font-bold">KYC Verification</div>
@@ -1921,7 +1941,9 @@ export default function MultiStepOnboardingForm({ language }: { language: string
 
       {/* Step 5: Result */}
       <Card>
-        <div className={cn('flex items-top justify-between px-6', activeStep === 4 && 'pb-4 border-b')}>
+        <div
+          className={cn('flex items-top justify-between px-6', activeStep === 4 && 'pb-4 border-b')}
+        >
           <div>
             <div className="text-muted-foreground">Step 5</div>
             <div className="font-bold">Check KYC status</div>
@@ -1934,7 +1956,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
             {freelancer ? (
               <div>
                 <pre className="mt-4 bg-muted rounded p-4 text-xs overflow-x-auto">
-                          {JSON.stringify(freelancer.kyc, null, 2)}
+                  {JSON.stringify(freelancer.kyc, null, 2)}
                 </pre>
               </div>
             ) : (
@@ -1946,7 +1968,9 @@ export default function MultiStepOnboardingForm({ language }: { language: string
 
       {/* Step 6: Create invoice */}
       <Card>
-        <div className={cn('flex items-top justify-between px-6', activeStep === 5 && 'pb-4 border-b')}>
+        <div
+          className={cn('flex items-top justify-between px-6', activeStep === 5 && 'pb-4 border-b')}
+        >
           <div>
             <div className="text-muted-foreground">Step 6</div>
             <div className="font-bold">Create invoice</div>

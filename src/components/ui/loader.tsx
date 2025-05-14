@@ -1,4 +1,4 @@
-import clsx from 'clsx'
+import clsx from 'clsx';
 
 const Loader = ({ className }: { className: string }) => {
   return (
@@ -25,7 +25,7 @@ const Loader = ({ className }: { className: string }) => {
         />
       </svg>
     </div>
-  )
-}
+  );
+};
 
-export default Loader
+export default Loader;
