@@ -1,5 +1,6 @@
-import { CheckIcon, ChevronsUpDown } from 'lucide-react';
 import * as React from 'react';
+
+import { CheckIcon, ChevronsUpDown } from 'lucide-react';
 import * as RPNInput from 'react-phone-number-input';
 import flags from 'react-phone-number-input/flags';
 
@@ -150,10 +151,7 @@ const FlagComponent = ({ country, countryName }: RPNInput.FlagProps) => {
   const Flag = flags[country];
 
   return (
-    <span className="flex h-3 w-5 overflow-hidden ">
-      {/* className="size-full" */}
-      {Flag && <Flag title={countryName}  />}
-    </span>
+    <span className="flex h-3 w-5 overflow-hidden ">{Flag && <Flag title={countryName} />}</span>
   );
 };
 

@@ -371,13 +371,6 @@ function setFreelancerIdForEmail(email: string, data: FreelancerResult) {
   map[email] = data;
   localStorage.setItem('abillioFreelancers', JSON.stringify(map));
 }
-function removeFreelancerIdForEmail(email: string) {
-  const map = getFreelancerIdMap();
-  if (map[email]) {
-    delete map[email];
-    localStorage.setItem('abillioFreelancers', JSON.stringify(map));
-  }
-}
 
 // --- API Response Types ---
 export interface InviteResult {
@@ -485,11 +478,37 @@ export default function MultiStepOnboardingForm({ language }: { language: string
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    const data = loadFromLocalStorage();
-    if (data) setFormData(data);
-  }, []);
+  // Step 1: Personal Info
+  const personalForm = useForm<PersonalFormData>({
+    resolver: zodResolver(personalSchema),
+    defaultValues: {
+      language: formData.personal?.language || language,
+      email: formData.personal?.email || '',
+      first_name: formData.personal?.first_name || '',
+      last_name: formData.personal?.last_name || '',
+      gender: formData.personal?.gender || 'male',
+      birth_date: formData.personal?.birth_date ? new Date(formData.personal?.birth_date) : null,
+      country: formData.personal?.country || '',
+      personal_code: formData.personal?.personal_code || '',
+      tax_number: formData.personal?.tax_number || '',
+      phone: formData.personal?.phone || '',
+    },
+    mode: 'onTouched',
+  });
+
+  // Step 2: Address
+  const addressForm = useForm<AddressFormData>({
+    resolver: zodResolver(addressSchema),
+    defaultValues: formData.address || {},
+    mode: 'onTouched',
+  });
+
+  // Step 3: Payment
+  const paymentForm = useForm<PaymentFormData>({
+    resolver: zodResolver(paymentSchema),
+    defaultValues: formData.payment || {},
+    mode: 'onTouched',
+  });
 
   // Sync form values with formData (localStorage) for all forms
   useEffect(() => {
@@ -509,69 +528,13 @@ export default function MultiStepOnboardingForm({ language }: { language: string
         ...formData.payment,
       });
     }
-  });
+  }, [formData, personalForm, addressForm, paymentForm]);
 
-  // Step 1: Personal Info
-  const personalForm = useForm<PersonalFormData>({
-    resolver: zodResolver(personalSchema),
-    defaultValues: {
-      language: formData.personal?.language || language,
-      email: formData.personal?.email || '',
-      first_name: formData.personal?.first_name || '',
-      last_name: formData.personal?.last_name || '',
-      gender: formData.personal?.gender || 'male',
-      birth_date: formData.personal?.birth_date ? new Date(formData.personal?.birth_date) : null,
-      country: formData.personal?.country || '',
-      personal_code: formData.personal?.personal_code || '',
-      tax_number: formData.personal?.tax_number || '',
-      phone: formData.personal?.phone || '',
-    },
-    mode: 'onTouched',
-  });
-
-  // Saglabā language uzreiz, kad mainās
+  // Load from localStorage on mount
   useEffect(() => {
-    const subscription = personalForm.watch((values, { name }) => {
-      if (name === 'language' && values.language) {
-        const newPersonal = {
-          ...formData.personal,
-          ...values,
-          language: values.language,
-          email: values.email || '',
-          first_name: values.first_name || '',
-          last_name: values.last_name || '',
-          gender: values.gender || 'male',
-          birth_date: values.birth_date || null,
-          country: values.country || '',
-          personal_code: values.personal_code || '',
-        };
-        const newData = { ...formData, personal: newPersonal };
-        setFormData(newData);
-        saveToLocalStorage(newData);
-      }
-      // Clear abillioFreelancers for current email if email changes
-      if (name === 'email') {
-        if (formData.personal?.email) {
-          removeFreelancerIdForEmail(formData.personal.email);
-        }
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [personalForm, formData]);
-
-  // Step 2: Address
-  const addressForm = useForm<AddressFormData>({
-    resolver: zodResolver(addressSchema),
-    defaultValues: formData.address || {},
-    mode: 'onTouched',
-  });
-
-  // Step 3: Payment
-  const paymentForm = useForm<PaymentFormData>({
-    resolver: zodResolver(paymentSchema),
-    defaultValues: formData.payment || {},
-    mode: 'onTouched',
-  });
+    const data = loadFromLocalStorage();
+    if (data) setFormData(data);
+  }, []);
 
   // Step submit handlers
   function handlePersonalSubmit(values: PersonalFormData) {
@@ -1886,7 +1849,6 @@ function KycScriptInjector({ script }: { script: string }) {
     scriptEl.onload = () => {
       console.log('[KYC] Script loaded, executing onload code:', onload);
       try {
-        // eslint-disable-next-line no-eval
         eval(onload);
         console.log('[KYC] onload code executed');
         // Kad abillio_kyc ir pieejams, piesaisti event listener

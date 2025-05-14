@@ -159,7 +159,7 @@ export function AsyncSelect<T>({
         setOptions(originalOptions);
       }
     }
-  }, [fetcher, debouncedSearchTerm, mounted, preload, filterFn]);
+  }, [fetcher, debouncedSearchTerm, mounted, preload, filterFn, originalOptions]);
 
   const handleSelect = useCallback(
     (currentValue: string) => {
