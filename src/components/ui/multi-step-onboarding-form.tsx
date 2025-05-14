@@ -37,6 +37,7 @@ import { Info } from 'lucide-react';
 import { JsonViewer } from '@/components/ui/json-tree-viewer';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import Loader from './loader';
 // Zod schemas for each step
 const personalSchema = z.object({
   language: z.string(),
@@ -470,13 +471,14 @@ async function createFreelancer(
 }
 
 export default function MultiStepOnboardingForm({ language }: { language: string }) {
-  const [activeStep, setActiveStep] = useState(0); // 0: personal, 1: address, 2: payment, 3: kyc, 4: result
+  const [activeStep, setActiveStep] = useState(0); // 0: personal, 1: address, 2: payment, 3: kyc, 4: kyc_verified, 5: create_invoice
   const [stepStatus, setStepStatus] = useState<{ [key: string]: 'done' | 'pending' }>({
     personal: 'pending',
     address: 'pending',
     payment: 'pending',
     kyc: 'pending',
-    result: 'pending',
+    kyc_verified: 'pending',
+    create_invoice: 'pending',
   });
   const [formData, setFormData] = useState<OnboardingFormData>({});
   const [birthDateOpen, setBirthDateOpen] = useState(false);
@@ -1015,6 +1017,47 @@ export default function MultiStepOnboardingForm({ language }: { language: string
     }
     return null;
   }
+
+  // Refresh freelancer KYC status every 30 seconds on Step 5
+  useEffect(() => {
+    if (activeStep !== 4 || !freelancer?.id) return;
+    let cancelled = false;
+    const interval = setInterval(async () => {
+      try {
+        const data = await getFreelancer(freelancer.id, language);
+        if (cancelled) return;
+        setFreelancer(data.result);
+        if (data?.result?.kyc_is_verified) {
+          setStepStatus((prev) => ({ ...prev, kyc_verified: 'done' }));
+          clearInterval(interval);
+          setActiveStep(5);
+        }
+      } catch (e) {
+        // Optionally handle error
+        console.error(e);
+      }
+    }, 30000);
+    // Also do an immediate check on mount
+    (async () => {
+      try {
+        const data = await getFreelancer(freelancer.id, language);
+        if (cancelled) return;
+        setFreelancer(data.result);
+        if (data?.result?.kyc_is_verified) {
+          setStepStatus((prev) => ({ ...prev, kyc_verified: 'done' }));
+          clearInterval(interval);
+          setActiveStep(5);
+        }
+      } catch (e) {
+        // Optionally handle error
+        console.error(e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [activeStep, freelancer?.id, language]);
 
   return (
     <div className="w-full mt-8 space-y-6">
@@ -1810,7 +1853,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
             <div className="text-muted-foreground">Step 4</div>
             <div className="font-bold">KYC Verification</div>
           </div>
-          {stepStatus.result === 'done' && <CheckCircle className="text-green-500" />}
+          {stepStatus.kyc === 'done' && <CheckCircle className="text-green-500" />}
         </div>
         {activeStep === 3 && (
           <CardContent>
@@ -1883,9 +1926,38 @@ export default function MultiStepOnboardingForm({ language }: { language: string
             <div className="text-muted-foreground">Step 5</div>
             <div className="font-bold">Check KYC status</div>
           </div>
-          {stepStatus.result === 'done' && <CheckCircle className="text-green-500" />}
+          {stepStatus.kyc_verified === 'done' && <CheckCircle className="text-green-500" />}
         </div>
-        {activeStep === 4 && <CardContent>TODO Refresh freelancer data</CardContent>}
+        {activeStep === 4 && (
+          <CardContent>
+            <Loader className="w-4 h-4" />
+            {freelancer ? (
+              <div>
+                <pre className="mt-4 bg-muted rounded p-4 text-xs overflow-x-auto">
+                          {JSON.stringify(freelancer.kyc, null, 2)}
+                </pre>
+              </div>
+            ) : (
+              <div>No freelancer data</div>
+            )}
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Step 6: Create invoice */}
+      <Card>
+        <div className={cn('flex items-top justify-between px-6', activeStep === 5 && 'pb-4 border-b')}>
+          <div>
+            <div className="text-muted-foreground">Step 6</div>
+            <div className="font-bold">Create invoice</div>
+          </div>
+          {stepStatus.create_invoice === 'done' && <CheckCircle className="text-green-500" />}
+        </div>
+        {activeStep === 5 && (
+          <CardContent>
+            <Button>TODO</Button>
+          </CardContent>
+        )}
       </Card>
     </div>
   );
