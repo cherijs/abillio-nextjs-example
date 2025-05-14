@@ -37,6 +37,8 @@ import { Info } from 'lucide-react';
 import { JsonViewer } from '@/components/ui/json-tree-viewer';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { ClientCodeBlock } from '@/components/ui/ClientCodeBlock';
 // Zod schemas for each step
 const personalSchema = z.object({
   language: z.string(),
@@ -233,6 +235,10 @@ async function fetchCountries(
 async function fetchAndCacheCountries(lang: string) {
   const res = await fetch(`/api/abillio/countries?lang=${lang}`);
   const data = await res.json();
+  if (!data.result || !Array.isArray(data.result)) {
+    console.error('fetchAndCacheCountries: API atbilde nesatur result masīvu', data);
+    return [];
+  }
   const mapped = data.result.map((c: { id: string; name: string; flag: string }) => ({
     value: c.id,
     label: c.name,
@@ -352,7 +358,7 @@ function generatePayload(formData: OnboardingFormData) {
 }
 
 // Helper to get/set abillioFreelancers map in localStorage
-function getFreelancerIdMap() {
+function getFreelancerIdMap(): Record<string, FreelancerResult> {
   if (typeof window === 'undefined') return {};
   try {
     return JSON.parse(localStorage.getItem('abillioFreelancers') || '{}');
@@ -360,7 +366,7 @@ function getFreelancerIdMap() {
     return {};
   }
 }
-function setFreelancerIdForEmail(email: string, data: object) {
+function setFreelancerIdForEmail(email: string, data: FreelancerResult) {
   const map = getFreelancerIdMap();
   map[email] = data;
   localStorage.setItem('abillioFreelancers', JSON.stringify(map));
@@ -373,13 +379,69 @@ function removeFreelancerIdForEmail(email: string) {
   }
 }
 
-function getFreelancerDataByEmail(email: string): object | undefined {
-  const map = getFreelancerIdMap();
-  return map[email];
+// --- API Response Types ---
+export interface InviteResult {
+  is_sent: boolean;
+  is_signed_up: boolean;
+  email: string;
+  lang: string;
+  message: string | null;
+  client: string;
+  sent_by: string;
+  account: string;
+  url: string;
+}
+
+export interface BankAccount {
+  id: string;
+  kind: string;
+  name?: string | null;
+  is_verified?: boolean;
+  currency?: string;
+  bank_name?: string | null;
+  iban?: string;
+  bic_swift?: string;
+  account_number?: string;
+  ach?: string;
+  wire_routing_number?: string;
+  branch_name?: string;
+  bank_address?: string;
+  name_on_card?: string;
+  card_number?: string;
+  paypal_email?: string;
+}
+
+export interface FreelancerResult {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  gender?: string | null;
+  member_data_is_provided?: boolean;
+  bank_account_is_provided?: boolean;
+  bank_account_is_verified?: boolean;
+  bank_accounts?: BankAccount[];
+  can_send_invoice?: boolean;
+  country?: string;
+  language?: string;
+  birth_date?: string;
+  personal_code?: string;
+  tax_number?: string;
+  phone?: string;
+  address?: string;
+  kyc_is_provided?: boolean;
+  kyc_is_pending?: boolean;
+  kyc_is_verified?: boolean;
+  kyc_is_failed?: boolean;
+  kyc?: unknown[];
+  kyc_setup_script?: string;
+  error?: string;
+  invite?: InviteResult;
+  [key: string]: unknown;
 }
 
 // Helper to fetch freelancer by ID
-async function getFreelancer(id: string, lang: string): Promise<any> {
+async function getFreelancer(id: string, lang: string): Promise<{ result: FreelancerResult }> {
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/abillio/freelancers/${id}?lang=${lang}`,
     { method: 'GET' },
@@ -389,7 +451,10 @@ async function getFreelancer(id: string, lang: string): Promise<any> {
 }
 
 // Helper to create freelancer
-async function createFreelancer(payload: object, lang: string): Promise<any> {
+async function createFreelancer(
+  payload: object,
+  lang: string,
+): Promise<{ result: FreelancerResult }> {
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/abillio/freelancers?lang=${lang}`,
     {
@@ -413,10 +478,10 @@ export default function MultiStepOnboardingForm({ language }: { language: string
   });
   const [formData, setFormData] = useState<OnboardingFormData>({});
   const [birthDateOpen, setBirthDateOpen] = useState(false);
-  const [freelancer, setFreelancer] = useState<any>(null);
+  const [freelancer, setFreelancer] = useState<FreelancerResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [inviteFreelancer, setInviteFreelancer] = useState<any>(null);
+  const [inviteFreelancer, setInviteFreelancer] = useState<FreelancerResult | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
 
@@ -553,14 +618,22 @@ export default function MultiStepOnboardingForm({ language }: { language: string
         try {
           const inviteData = await getFreelancer(data.result.id, language);
           setInviteFreelancer(inviteData.result);
-        } catch (err: any) {
-          setInviteError(err.message || 'Failed to fetch invited freelancer');
+        } catch (err: unknown) {
+          if (err instanceof Error) {
+            setInviteError(err.message || 'Failed to fetch invited freelancer');
+          } else {
+            setInviteError('Failed to fetch invited freelancer');
+          }
         } finally {
           setInviteLoading(false);
         }
       }
-    } catch (e: any) {
-      setError(e.message || 'API error');
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setError(e.message || 'API error');
+      } else {
+        setError('API error');
+      }
     } finally {
       setLoading(false);
     }
@@ -1619,7 +1692,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
           <div className="flex items-top justify-between px-6 pb-4 border-b">
             <div>
               <div className="text-muted-foreground">Step 5</div>
-              <div className="font-bold">Result</div>
+              <div className="font-bold">KYC Verification</div>
             </div>
             {stepStatus.result === 'done' && <CheckCircle className="text-green-500" />}
           </div>
@@ -1632,7 +1705,103 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                     <AlertDescription>{freelancer.error}</AlertDescription>
                   </Alert>
                 )}
-                <JsonViewer data={freelancer} className="rounded-md p-4 my-4 border" />
+                {!freelancer.error ? (
+                  <>
+                    <div className="font-bold mb-2">Freelancer data</div>
+                    <div className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
+                      We have created a freelancer in abillio. The next step is to verify the
+                      freelancer. Check the KYC status and if it is not verified, inject the KYC
+                      script form the field `kyc_setup_script` to the page. that will create a
+                      button within the div with id=&apos;abillio-kyc&apos;.
+                    </div>
+                    <div className="mt-2 text-sm/6 font-[family-name:var(--font-geist-mono)] text-destructive">
+                      Dont show the KYC button if the KYC is already verified.
+                    </div>
+                    <p className="mt-2">
+                      KYC is provided{' '}
+                      <Badge variant={freelancer.kyc_is_provided ? 'default' : 'destructive'}>
+                        {freelancer.kyc_is_provided ? 'Yes' : 'No'}
+                      </Badge>
+                    </p>
+                    <p className="mt-2">
+                      KYC is verified{' '}
+                      <Badge variant={freelancer.kyc_is_verified ? 'default' : 'destructive'}>
+                        {freelancer.kyc_is_verified ? 'Yes' : 'No'}
+                      </Badge>
+                    </p>
+
+                    <p className="mt-2">
+                      KYC is pending{' '}
+                      <Badge variant={freelancer.kyc_is_pending ? 'destructive' : 'outline'}>
+                        {freelancer.kyc_is_pending ? 'Yes' : 'No'}
+                      </Badge>
+                    </p>
+
+                    <p className="mt-2">
+                      KYC failed{' '}
+                      <Badge variant={freelancer.kyc_is_failed ? 'destructive' : 'outline'}>
+                        {freelancer.kyc_is_failed ? 'Yes' : 'No'}
+                      </Badge>
+                    </p>
+                    {((freelancer.kyc_is_provided === false &&
+                      freelancer.kyc_is_pending === false &&
+                      freelancer.kyc_is_verified === false) ||
+                      freelancer.kyc_is_failed === true) &&
+                    freelancer.kyc_setup_script ? (
+                      <>
+                        <pre className="mt-4 bg-muted rounded p-4 text-xs overflow-x-auto">
+                          {freelancer.kyc_setup_script}
+                        </pre>
+
+                        <div id="abillio-kyc" />
+
+                        <div className="mb-2 mt-4 text-sm/6 font-[family-name:var(--font-geist-mono)]">
+                          You can override the button component styles
+                        </div>
+                        <ClientCodeBlock
+                          code={`#abillio-kyc {
+  #veriff-root {
+    max-width: initial;
+    min-width: initial;
+    font-family: inherit !important;
+    .veriff-container {
+      .veriff-submit {
+        @apply bg-primary text-primary-foreground;
+      }
+      .veriff-description {
+        @apply hidden;
+      }
+    }
+  }
+}`}
+                          language="css"
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <pre className="mt-4 bg-muted rounded p-4 text-xs overflow-x-auto">
+                          {JSON.stringify(freelancer.kyc, null, 2)}
+                        </pre>
+                      </>
+                    )}
+                  </>
+                ) : null}
+
+                <div className="mb-2 mt-4 text-sm/6 font-[family-name:var(--font-geist-mono)]">
+                  Response from the API
+                </div>
+                <JsonViewer
+                  data={freelancer}
+                  className="rounded-md p-4 my-4 border max-h-[300px] overflow-y-auto"
+                />
+                {/* KYC Button Mounting */}
+                {((freelancer.kyc_is_provided === false &&
+                  freelancer.kyc_is_pending === false &&
+                  freelancer.kyc_is_verified === false) ||
+                  freelancer.kyc_is_failed === true) &&
+                freelancer.kyc_setup_script ? (
+                  <KycScriptInjector script={freelancer.kyc_setup_script} />
+                ) : null}
                 {/* Show invite freelancer details if present */}
                 {freelancer.invite && (
                   <div className="mt-6">
@@ -1668,4 +1837,81 @@ export default function MultiStepOnboardingForm({ language }: { language: string
       )}
     </div>
   );
+}
+
+function KycScriptInjector({ script }: { script: string }) {
+  useEffect(() => {
+    console.log('[KYC] KycScriptInjector mounted');
+    // Remove previous script
+    const prev = document.getElementById('abillio-kyc-script');
+    if (prev) {
+      console.log('[KYC] Removing previous script');
+      prev.remove();
+    }
+    // Clean abillio-kyc div
+    const div = document.getElementById('abillio-kyc');
+    if (div) {
+      console.log('[KYC] Found abillio-kyc div, clearing innerHTML');
+      div.innerHTML = '';
+    } else {
+      console.warn('[KYC] abillio-kyc div not found!');
+    }
+    // Parse src and onload from script string
+    let src = '';
+    let onload = '';
+    if (script.includes("src='")) {
+      const start = script.indexOf("src='") + 5;
+      const end = script.indexOf("'", start);
+      src = script.substring(start, end);
+    } else if (script.includes('src="')) {
+      const start = script.indexOf('src="') + 5;
+      const end = script.indexOf('"', start);
+      src = script.substring(start, end);
+    }
+    if (script.includes("onload='")) {
+      const start = script.indexOf("onload='") + 8;
+      const end = script.indexOf("'", start);
+      onload = script.substring(start, end);
+    } else if (script.includes('onload="')) {
+      const start = script.indexOf('onload="') + 8;
+      const end = script.indexOf('"', start);
+      onload = script.substring(start, end);
+    }
+    console.log('[KYC] Parsed src:', src);
+    console.log('[KYC] Parsed onload:', onload);
+    const scriptEl = document.createElement('script');
+    scriptEl.id = 'abillio-kyc-script';
+    scriptEl.src = src;
+    scriptEl.async = true;
+    scriptEl.onload = () => {
+      console.log('[KYC] Script loaded, executing onload code:', onload);
+      try {
+        // eslint-disable-next-line no-eval
+        eval(onload);
+        console.log('[KYC] onload code executed');
+        // Kad abillio_kyc ir pieejams, piesaisti event listener
+        if (window.abillio_kyc && typeof window.abillio_kyc.setOnEvent === 'function') {
+          console.log('KYC widgets ir pieejams (onload)');
+          window.abillio_kyc.setOnEvent(function (event: string, response: unknown) {
+            console.log('KYC event:', event);
+            console.log('KYC response:', response);
+          });
+        } else {
+          console.warn('KYC widgets nav pieejams (onload)');
+        }
+      } catch (e) {
+        console.error('[KYC] Error executing onload code:', e);
+      }
+    };
+    document.body.appendChild(scriptEl);
+    console.log('[KYC] Script element appended to body');
+    return () => {
+      const prev = document.getElementById('abillio-kyc-script');
+      if (prev) {
+        console.log('[KYC] Cleaning up script on unmount');
+        prev.remove();
+      }
+    };
+  }, [script]);
+  return null;
 }

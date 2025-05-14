@@ -1,15 +1,3 @@
-import { getDictionary } from '../../../_dictionaries';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
-import { buttonVariants } from '@/components/ui/button';
-import { JsonViewer } from '@/components/ui/json-tree-viewer';
 import MultiStepOnboardingForm from '../../../_components/MultiStepOnboardingForm';
 
 export default async function ClientUsagePage({
@@ -18,7 +6,6 @@ export default async function ClientUsagePage({
   params: Promise<{ lang: 'en' | 'lv' }>;
 }) {
   const { lang } = await params;
-  const dict = getDictionary(lang);
 
   return (
     <div className="font-[family-name:var(--font-geist-sans)] flex flex-col items-center">

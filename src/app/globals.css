@@ -132,3 +132,19 @@ pre code {
 .rdp-vhidden {
   @apply hidden;
 }
+
+#abillio-kyc {
+  #veriff-root {
+    max-width: initial;
+    min-width: initial;
+    font-family: inherit !important;
+    .veriff-container {
+      .veriff-submit {
+        @apply bg-green-500 cursor-pointer text-primary-foreground;
+      }
+      .veriff-description {
+        @apply hidden;
+      }
+    }
+  }
+}
