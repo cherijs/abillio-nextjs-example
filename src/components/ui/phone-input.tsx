@@ -151,7 +151,8 @@ const FlagComponent = ({ country, countryName }: RPNInput.FlagProps) => {
 
   return (
     <span className="flex h-3 w-5 overflow-hidden ">
-      {Flag && <Flag title={countryName} className="size-full" />}
+      {/* className="size-full" */}
+      {Flag && <Flag title={countryName}  />}
     </span>
   );
 };
