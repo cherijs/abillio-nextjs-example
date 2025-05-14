@@ -38,7 +38,6 @@ import { JsonViewer } from '@/components/ui/json-tree-viewer';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { ClientCodeBlock } from '@/components/ui/ClientCodeBlock';
 // Zod schemas for each step
 const personalSchema = z.object({
   language: z.string(),
@@ -178,6 +177,11 @@ interface OnboardingFormData {
   payment?: PaymentFormData;
 }
 
+// Helper to ensure all string fields are not undefined/null
+function safeString(val: unknown): string {
+  return typeof val === 'string' ? val : '';
+}
+
 function saveToLocalStorage(data: OnboardingFormData) {
   // Convert birth_date to 'yyyy-MM-dd' string for storage
   const safeData = {
@@ -203,6 +207,12 @@ function loadFromLocalStorage(): OnboardingFormData | null {
     // Convert birth_date string back to Date
     if (parsed.personal && parsed.personal.birth_date) {
       parsed.personal.birth_date = new Date(parsed.personal.birth_date);
+    }
+    // Ensure gender is always set to a valid value
+    if (parsed.personal) {
+      if (!['male', 'female', 'other'].includes(parsed.personal.gender)) {
+        parsed.personal.gender = 'male';
+      }
     }
     return parsed;
   } catch {
@@ -461,12 +471,12 @@ async function createFreelancer(
 }
 
 export default function MultiStepOnboardingForm({ language }: { language: string }) {
-  const [activeStep, setActiveStep] = useState(0); // 0: personal, 1: address, 2: payment, 3: proceed, 4: result
+  const [activeStep, setActiveStep] = useState(0); // 0: personal, 1: address, 2: payment, 3: kyc, 4: result
   const [stepStatus, setStepStatus] = useState<{ [key: string]: 'done' | 'pending' }>({
     personal: 'pending',
     address: 'pending',
     payment: 'pending',
-    proceed: 'pending',
+    kyc: 'pending',
     result: 'pending',
   });
   const [formData, setFormData] = useState<OnboardingFormData>({});
@@ -482,16 +492,20 @@ export default function MultiStepOnboardingForm({ language }: { language: string
   const personalForm = useForm<PersonalFormData>({
     resolver: zodResolver(personalSchema),
     defaultValues: {
-      language: formData.personal?.language || language,
-      email: formData.personal?.email || '',
-      first_name: formData.personal?.first_name || '',
-      last_name: formData.personal?.last_name || '',
-      gender: formData.personal?.gender || 'male',
+      language: safeString(formData.personal?.language) || language,
+      email: safeString(formData.personal?.email),
+      first_name: safeString(formData.personal?.first_name),
+      last_name: safeString(formData.personal?.last_name),
+      gender:
+        typeof formData.personal?.gender === 'string' &&
+        ['male', 'female', 'other'].includes(formData.personal.gender)
+          ? formData.personal.gender
+          : 'male',
       birth_date: formData.personal?.birth_date ? new Date(formData.personal?.birth_date) : null,
-      country: formData.personal?.country || '',
-      personal_code: formData.personal?.personal_code || '',
-      tax_number: formData.personal?.tax_number || '',
-      phone: formData.personal?.phone || '',
+      country: safeString(formData.personal?.country),
+      personal_code: safeString(formData.personal?.personal_code),
+      tax_number: safeString(formData.personal?.tax_number),
+      phone: safeString(formData.personal?.phone),
     },
     mode: 'onTouched',
   });
@@ -499,36 +513,87 @@ export default function MultiStepOnboardingForm({ language }: { language: string
   // Step 2: Address
   const addressForm = useForm<AddressFormData>({
     resolver: zodResolver(addressSchema),
-    defaultValues: formData.address || {},
+    defaultValues: {
+      country: safeString(formData.address?.country),
+      street: safeString(formData.address?.street),
+      address2: safeString(formData.address?.address2),
+      city: safeString(formData.address?.city),
+      postcode: safeString(formData.address?.postcode),
+    },
     mode: 'onTouched',
   });
 
   // Step 3: Payment
   const paymentForm = useForm<PaymentFormData>({
     resolver: zodResolver(paymentSchema),
-    defaultValues: formData.payment || {},
+    defaultValues: {
+      kind: formData.payment?.kind || 'sepa',
+      currency: safeString(formData.payment?.currency),
+      name: safeString(formData.payment?.name),
+      iban: safeString(formData.payment?.iban),
+      bank_name: safeString(formData.payment?.bank_name),
+      bic_swift: safeString(formData.payment?.bic_swift),
+      account_number: safeString(formData.payment?.account_number),
+      ach: safeString(formData.payment?.ach),
+      wire_routing_number: safeString(formData.payment?.wire_routing_number),
+      branch_name: safeString(formData.payment?.branch_name),
+      bank_address: safeString(formData.payment?.bank_address),
+      card_number: safeString(formData.payment?.card_number),
+      name_on_card: safeString(formData.payment?.name_on_card),
+      paypal_email: safeString(formData.payment?.paypal_email),
+    },
     mode: 'onTouched',
   });
 
   // Sync form values with formData (localStorage) for all forms
   useEffect(() => {
-    if (formData.personal && formData.personal.language) {
+    if (
+      formData.personal &&
+      formData.personal.language &&
+      typeof formData.personal.gender === 'string' &&
+      ['male', 'female', 'other'].includes(formData.personal.gender)
+    ) {
       personalForm.reset({
-        ...formData.personal,
-        birth_date: formData.personal.birth_date ? new Date(formData.personal.birth_date) : null,
+        language: safeString(formData.personal?.language) || language,
+        email: safeString(formData.personal?.email),
+        first_name: safeString(formData.personal?.first_name),
+        last_name: safeString(formData.personal?.last_name),
+        gender: formData.personal.gender,
+        birth_date: formData.personal?.birth_date ? new Date(formData.personal?.birth_date) : null,
+        country: safeString(formData.personal?.country),
+        personal_code: safeString(formData.personal?.personal_code),
+        tax_number: safeString(formData.personal?.tax_number),
+        phone: safeString(formData.personal?.phone),
       });
     }
     if (formData.address) {
       addressForm.reset({
-        ...formData.address,
+        country: safeString(formData.address?.country),
+        street: safeString(formData.address?.street),
+        address2: safeString(formData.address?.address2),
+        city: safeString(formData.address?.city),
+        postcode: safeString(formData.address?.postcode),
       });
     }
     if (formData.payment) {
       paymentForm.reset({
-        ...formData.payment,
+        kind: formData.payment?.kind || 'sepa',
+        currency: safeString(formData.payment?.currency),
+        name: safeString(formData.payment?.name),
+        iban: safeString(formData.payment?.iban),
+        bank_name: safeString(formData.payment?.bank_name),
+        bic_swift: safeString(formData.payment?.bic_swift),
+        account_number: safeString(formData.payment?.account_number),
+        ach: safeString(formData.payment?.ach),
+        wire_routing_number: safeString(formData.payment?.wire_routing_number),
+        branch_name: safeString(formData.payment?.branch_name),
+        bank_address: safeString(formData.payment?.bank_address),
+        card_number: safeString(formData.payment?.card_number),
+        name_on_card: safeString(formData.payment?.name_on_card),
+        paypal_email: safeString(formData.payment?.paypal_email),
       });
     }
-  }, [formData, personalForm, addressForm, paymentForm]);
+  }, [formData, personalForm, addressForm, paymentForm, language]);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -546,6 +611,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
   }
   function handleAddressSubmit(values: AddressFormData) {
     const newData = { ...formData, address: values };
+    // console.log('handleAddressSubmit:', newData);
     setFormData(newData);
     saveToLocalStorage(newData);
     setStepStatus((prev) => ({ ...prev, address: 'done' }));
@@ -556,9 +622,9 @@ export default function MultiStepOnboardingForm({ language }: { language: string
     setFormData(newData);
     saveToLocalStorage(newData);
     setStepStatus((prev) => ({ ...prev, payment: 'done' }));
-    setActiveStep(3);
+    handleKyc();
   }
-  async function handleProceed() {
+  async function handleKyc() {
     setLoading(true);
     setError(null);
     setInviteFreelancer(null);
@@ -573,8 +639,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
       if (data?.result?.id && formData.personal?.email) {
         setFreelancerIdForEmail(formData.personal.email, data.result);
       }
-      setStepStatus((prev) => ({ ...prev, proceed: 'done', result: 'done' }));
-      setActiveStep(4);
+      setActiveStep(3);
       // If invite object present, fetch freelancer details
       if (data?.result?.invite && data?.result?.id) {
         setInviteLoading(true);
@@ -590,6 +655,11 @@ export default function MultiStepOnboardingForm({ language }: { language: string
         } finally {
           setInviteLoading(false);
         }
+      }
+
+      if (data?.result?.kyc_is_verified) {
+        setStepStatus((prev) => ({ ...prev, kyc: 'done' }));
+        setActiveStep(4);
       }
     } catch (e: unknown) {
       if (e instanceof Error) {
@@ -957,11 +1027,6 @@ export default function MultiStepOnboardingForm({ language }: { language: string
           <div>
             <div className="text-muted-foreground">Step 1</div>
             <div className="font-bold">Personal Information</div>
-            {activeStep === 0 ? (
-              <div className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
-                For the onboarding process, we need to get the user&apos;s required data.
-              </div>
-            ) : null}
           </div>
           {stepStatus.personal === 'done' && <CheckCircle className="text-green-500" />}
         </div>
@@ -1102,26 +1167,28 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                   <FormField
                     name="gender"
                     control={personalForm.control}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Gender</FormLabel>
-                        <FormControl>
-                          <Select value={field.value} onValueChange={field.onChange}>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select gender" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectGroup>
-                                <SelectItem value="male">Male</SelectItem>
-                                <SelectItem value="female">Female</SelectItem>
-                                <SelectItem value="other">Other</SelectItem>
-                              </SelectGroup>
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      return (
+                        <FormItem>
+                          <FormLabel>Gender</FormLabel>
+                          <FormControl>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select gender" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectGroup>
+                                  <SelectItem value="male">Male</SelectItem>
+                                  <SelectItem value="female">Female</SelectItem>
+                                  <SelectItem value="other">Other</SelectItem>
+                                </SelectGroup>
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                   <FormField
                     name="birth_date"
@@ -1276,7 +1343,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                               flag?: string;
                             }) => (
                               <span>
-                                {/* {option.flag ? `${option.flag} ` : ''} */}
+                                {option.flag ? `${option.flag} ` : ''}
                                 {option.label}
                               </span>
                             )}
@@ -1355,11 +1422,6 @@ export default function MultiStepOnboardingForm({ language }: { language: string
           <div>
             <div className="text-muted-foreground">Step 2</div>
             <div className="font-bold">Address</div>
-            {activeStep === 1 ? (
-              <div className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
-                Address is required for some payment methods for example SWIFT.
-              </div>
-            ) : null}
           </div>
           {stepStatus.address === 'done' && <CheckCircle className="text-green-500" />}
         </div>
@@ -1396,7 +1458,7 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                               flag?: string;
                             }) => (
                               <span>
-                                {option.flag ? `${option.flag} ` : ''}
+                                {/* {option.flag ? `${option.flag} ` : ''} */}
                                 {option.label}
                               </span>
                             )}
@@ -1490,11 +1552,6 @@ export default function MultiStepOnboardingForm({ language }: { language: string
           <div>
             <div className="text-muted-foreground">Step 3</div>
             <div className="font-bold">Payment method</div>
-            {activeStep === 2 ? (
-              <div className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
-                Provide the payment method you want to use. You can add more payment methods later.
-              </div>
-            ) : null}
           </div>
           {stepStatus.payment === 'done' && <CheckCircle className="text-green-500" />}
         </div>
@@ -1747,54 +1804,12 @@ export default function MultiStepOnboardingForm({ language }: { language: string
         )}
       </Card>
 
-      {/* Step 4: Proceed */}
-      <Card className={activeStep === 3 ? '' : 'bg-muted/50'}>
-        <div
-          className={cn('flex items-top justify-between px-6', activeStep === 3 && 'pb-4 border-b')}
-        >
-          <div>
-            <div className="text-muted-foreground">Step 4</div>
-            <div className="font-bold">Proceed to Verification</div>
-            {activeStep === 3 ? (
-              <div className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
-                In this step we will post the data to the API and freelancer will be registered. In
-                the response you will receive a freelancer ID that you must store in your database
-                for your user and a verification script that creates Button.
-              </div>
-            ) : null}
-          </div>
-          {stepStatus.proceed === 'done' && <CheckCircle className="text-green-500" />}
-        </div>
-        {activeStep === 3 ? (
-          <CardContent>
-            <p>Payload preview</p>
-            <pre className="mt-4 bg-muted rounded p-4 text-xs overflow-x-auto">
-              {JSON.stringify(generatePayload(formData), null, 2)}
-            </pre>
-            {error && <div className="text-destructive my-2">{error}</div>}
-            <div className="flex flex-col md:flex-row gap-2 mt-2">
-              <Button className="w-full md:w-auto" onClick={handleProceed} disabled={loading}>
-                {loading ? 'Submitting...' : 'Submit data'}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full md:w-auto"
-                onClick={() => setActiveStep(2)}
-              >
-                Edit previous steps
-              </Button>
-            </div>
-          </CardContent>
-        ) : null}
-      </Card>
-
-      {/* Step 5: Result */}
-      {activeStep === 4 && (
+      {/* Step 4: Result */}
+      {activeStep === 3 && (
         <Card>
           <div className="flex items-top justify-between px-6 pb-4 border-b">
             <div>
-              <div className="text-muted-foreground">Step 5</div>
+              <div className="text-muted-foreground">Step 4</div>
               <div className="font-bold">KYC Verification</div>
             </div>
             {stepStatus.result === 'done' && <CheckCircle className="text-green-500" />}
@@ -1810,76 +1825,12 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                 )}
                 {!freelancer.error ? (
                   <>
-                    <div className="font-bold mb-2">Freelancer data</div>
-                    <div className="text-sm/6 font-[family-name:var(--font-geist-mono)]">
-                      We have created a freelancer in abillio. The next step is to verify the
-                      freelancer. Check the KYC status and if it is not verified, inject the KYC
-                      script form the field `kyc_setup_script` to the page. that will create a
-                      button within the div with id=&apos;abillio-kyc&apos;.
-                    </div>
-                    <div className="mt-2 text-sm/6 font-[family-name:var(--font-geist-mono)] text-destructive">
-                      Dont show the KYC button if the KYC is already verified.
-                    </div>
-                    <p className="mt-2">
-                      KYC is provided{' '}
-                      <Badge variant={freelancer.kyc_is_provided ? 'default' : 'destructive'}>
-                        {freelancer.kyc_is_provided ? 'Yes' : 'No'}
-                      </Badge>
-                    </p>
-                    <p className="mt-2">
-                      KYC is verified{' '}
-                      <Badge variant={freelancer.kyc_is_verified ? 'default' : 'destructive'}>
-                        {freelancer.kyc_is_verified ? 'Yes' : 'No'}
-                      </Badge>
-                    </p>
-
-                    <p className="mt-2">
-                      KYC is pending{' '}
-                      <Badge variant={freelancer.kyc_is_pending ? 'destructive' : 'outline'}>
-                        {freelancer.kyc_is_pending ? 'Yes' : 'No'}
-                      </Badge>
-                    </p>
-
-                    <p className="mt-2">
-                      KYC failed{' '}
-                      <Badge variant={freelancer.kyc_is_failed ? 'destructive' : 'outline'}>
-                        {freelancer.kyc_is_failed ? 'Yes' : 'No'}
-                      </Badge>
-                    </p>
                     {((freelancer.kyc_is_provided === false &&
                       freelancer.kyc_is_pending === false &&
                       freelancer.kyc_is_verified === false) ||
                       freelancer.kyc_is_failed === true) &&
                     freelancer.kyc_setup_script ? (
-                      <>
-                        <pre className="mt-4 bg-muted rounded p-4 text-xs overflow-x-auto">
-                          {freelancer.kyc_setup_script}
-                        </pre>
-
-                        <div id="abillio-kyc" />
-
-                        <div className="mb-2 mt-4 text-sm/6 font-[family-name:var(--font-geist-mono)]">
-                          You can override the button component styles
-                        </div>
-                        <ClientCodeBlock
-                          code={`#abillio-kyc {
-  #veriff-root {
-    max-width: initial;
-    min-width: initial;
-    font-family: inherit !important;
-    .veriff-container {
-      .veriff-submit {
-        @apply bg-primary text-primary-foreground;
-      }
-      .veriff-description {
-        @apply hidden;
-      }
-    }
-  }
-}`}
-                          language="css"
-                        />
-                      </>
+                      <div id="abillio-kyc" />
                     ) : (
                       <>
                         <pre className="mt-4 bg-muted rounded p-4 text-xs overflow-x-auto">
@@ -1890,20 +1841,17 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                   </>
                 ) : null}
 
-                <div className="mb-2 mt-4 text-sm/6 font-[family-name:var(--font-geist-mono)]">
-                  Response from the API
-                </div>
-                <JsonViewer
-                  data={freelancer}
-                  className="rounded-md p-4 my-4 border max-h-[300px] overflow-y-auto"
-                />
                 {/* KYC Button Mounting */}
                 {((freelancer.kyc_is_provided === false &&
                   freelancer.kyc_is_pending === false &&
                   freelancer.kyc_is_verified === false) ||
                   freelancer.kyc_is_failed === true) &&
                 freelancer.kyc_setup_script ? (
-                  <KycScriptInjector script={freelancer.kyc_setup_script} />
+                  <KycScriptInjector
+                    script={freelancer.kyc_setup_script}
+                    setStepStatus={setStepStatus}
+                    setActiveStep={setActiveStep}
+                  />
                 ) : null}
                 {/* Show invite freelancer details if present */}
                 {freelancer.invite && (
@@ -1921,16 +1869,6 @@ export default function MultiStepOnboardingForm({ language }: { language: string
                     ) : null}
                   </div>
                 )}
-                <div className="pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full md:w-auto"
-                    onClick={() => setActiveStep(3)}
-                  >
-                    Edit & Retry
-                  </Button>
-                </div>
               </>
             ) : (
               <div className="text-muted-foreground">No result</div>
@@ -1938,23 +1876,45 @@ export default function MultiStepOnboardingForm({ language }: { language: string
           </CardContent>
         </Card>
       )}
+
+      {/* Step 5: Result */}
+      {activeStep === 4 && (
+        <Card>
+          <div className="flex items-top justify-between px-6 pb-4 border-b">
+            <div>
+              <div className="text-muted-foreground">Step 5</div>
+              <div className="font-bold">Refresh data</div>
+            </div>
+            {stepStatus.result === 'done' && <CheckCircle className="text-green-500" />}
+          </div>
+          <CardContent>TODO Refresh freelancer data</CardContent>
+        </Card>
+      )}
     </div>
   );
 }
 
-function KycScriptInjector({ script }: { script: string }) {
+function KycScriptInjector({
+  script,
+  setStepStatus,
+  setActiveStep,
+}: {
+  script: string;
+  setStepStatus: React.Dispatch<React.SetStateAction<{ [key: string]: 'done' | 'pending' }>>;
+  setActiveStep: React.Dispatch<React.SetStateAction<number>>;
+}) {
   useEffect(() => {
-    console.log('[KYC] KycScriptInjector mounted');
+    // console.log('[KYC] KycScriptInjector mounted');
     // Remove previous script
     const prev = document.getElementById('abillio-kyc-script');
     if (prev) {
-      console.log('[KYC] Removing previous script');
+      // console.log('[KYC] Removing previous script');
       prev.remove();
     }
     // Clean abillio-kyc div
     const div = document.getElementById('abillio-kyc');
     if (div) {
-      console.log('[KYC] Found abillio-kyc div, clearing innerHTML');
+      // console.log('[KYC] Found abillio-kyc div, clearing innerHTML');
       div.innerHTML = '';
     } else {
       console.warn('[KYC] abillio-kyc div not found!');
@@ -1980,14 +1940,14 @@ function KycScriptInjector({ script }: { script: string }) {
       const end = script.indexOf('"', start);
       onload = script.substring(start, end);
     }
-    console.log('[KYC] Parsed src:', src);
-    console.log('[KYC] Parsed onload:', onload);
+    // console.log('[KYC] Parsed src:', src);
+    // console.log('[KYC] Parsed onload:', onload);
     const scriptEl = document.createElement('script');
     scriptEl.id = 'abillio-kyc-script';
     scriptEl.src = src;
     scriptEl.async = true;
     scriptEl.onload = () => {
-      console.log('[KYC] Script loaded, executing onload code:', onload);
+      // console.log('[KYC] Script loaded, executing onload code:', onload);
       try {
         eval(onload);
         console.log('[KYC] onload code executed');
@@ -1997,6 +1957,16 @@ function KycScriptInjector({ script }: { script: string }) {
           window.abillio_kyc.setOnEvent(function (event: string, response: unknown) {
             console.log('KYC event:', event);
             console.log('KYC response:', response);
+            //   (STARTED = 'STARTED'),
+            //   (FINISHED = 'FINISHED'),
+            //   (CANCELED = 'CANCELED'),
+            //   (RELOAD_REQUEST = 'RELOAD');
+
+            if (event === 'FINISHED') {
+              // TODO: atver rezultāta lapu
+              setStepStatus((prev) => ({ ...prev, kyc: 'done' }));
+              setActiveStep(4);
+            }
           });
         } else {
           console.warn('KYC widgets nav pieejams (onload)');
@@ -2006,14 +1976,14 @@ function KycScriptInjector({ script }: { script: string }) {
       }
     };
     document.body.appendChild(scriptEl);
-    console.log('[KYC] Script element appended to body');
+    // console.log('[KYC] Script element appended to body');
     return () => {
       const prev = document.getElementById('abillio-kyc-script');
       if (prev) {
-        console.log('[KYC] Cleaning up script on unmount');
+        // console.log('[KYC] Cleaning up script on unmount');
         prev.remove();
       }
     };
-  }, [script]);
+  }, [script, setStepStatus, setActiveStep]);
   return null;
 }

@@ -1,7 +1,5 @@
 node_modules
 .next
-build
 dist
-coverage
-package-lock.json
-yarn.lock 
+build
+coverage 
