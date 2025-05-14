@@ -1804,15 +1804,15 @@ export default function MultiStepOnboardingForm({ language }: { language: string
       </Card>
 
       {/* Step 4: Result */}
-      {activeStep === 3 && (
-        <Card>
-          <div className="flex items-top justify-between px-6 pb-4 border-b">
-            <div>
-              <div className="text-muted-foreground">Step 4</div>
-              <div className="font-bold">KYC Verification</div>
-            </div>
-            {stepStatus.result === 'done' && <CheckCircle className="text-green-500" />}
+      <Card>
+        <div className={cn('flex items-top justify-between px-6', activeStep === 3 && 'pb-4 border-b')}>
+          <div>
+            <div className="text-muted-foreground">Step 4</div>
+            <div className="font-bold">KYC Verification</div>
           </div>
+          {stepStatus.result === 'done' && <CheckCircle className="text-green-500" />}
+        </div>
+        {activeStep === 3 && (
           <CardContent>
             {freelancer ? (
               <>
@@ -1873,22 +1873,20 @@ export default function MultiStepOnboardingForm({ language }: { language: string
               <div className="text-muted-foreground">No result</div>
             )}
           </CardContent>
-        </Card>
-      )}
+        )}
+      </Card>
 
       {/* Step 5: Result */}
-      {activeStep === 4 && (
-        <Card>
-          <div className="flex items-top justify-between px-6 pb-4 border-b">
-            <div>
-              <div className="text-muted-foreground">Step 5</div>
-              <div className="font-bold">Refresh data</div>
-            </div>
-            {stepStatus.result === 'done' && <CheckCircle className="text-green-500" />}
+      <Card>
+        <div className={cn('flex items-top justify-between px-6', activeStep === 4 && 'pb-4 border-b')}>
+          <div>
+            <div className="text-muted-foreground">Step 5</div>
+            <div className="font-bold">Check KYC status</div>
           </div>
-          <CardContent>TODO Refresh freelancer data</CardContent>
-        </Card>
-      )}
+          {stepStatus.result === 'done' && <CheckCircle className="text-green-500" />}
+        </div>
+        {activeStep === 4 && <CardContent>TODO Refresh freelancer data</CardContent>}
+      </Card>
     </div>
   );
 }
